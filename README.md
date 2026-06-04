@@ -1,18 +1,56 @@
-# Intelligent Customer Support Assistant
+# Intelligent Customer Support Assistant (ICSA)
 
-An AI-powered Intelligent Customer Support Assistant designed to streamline customer inquiries, automate ticket resolution, and provide instant, accurate responses using advanced LLMs and Retrieval-Augmented Generation (RAG).
+## Overview
 
-## Project Structure
+ICSA is an AI-powered customer support system for multi-restaurant food ordering platforms.
 
-- `backend/`: Core logic, APIs, and retrieval engine.
-- `frontend/`: Streamlit web interface for support agents and customers.
-- `data/`: Storage for documents, vector database persistence, and sample support logs.
-- `docs/`: System design, API documentation, and user guides.
+The system uses:
+- Large Language Models (LLMs)
+- Retrieval-Augmented Generation (RAG)
+- Sentiment Analysis
+- Intent Classification
+- Knowledge Retrieval
+
+## Features
+
+### Automated Customer Support
+- Answer customer queries automatically
+- Human-like responses
+- Context-aware conversations
+
+### Knowledge Retrieval (RAG)
+- Retrieve information from company documents
+- Restaurant-specific responses
+
+### Ticket Classification
+- Automatic categorization of support tickets
+
+### Sentiment Analysis
+- Positive
+- Neutral
+- Negative
+
+### Intelligent Escalation
+- Escalate low-confidence conversations
+- Detect dissatisfied customers
 
 ## Tech Stack
 
-- **Frontend**: Streamlit
-- **LLM & Orchestration**: LangChain, Google Generative AI (Gemini)
-- **Vector Database**: ChromaDB
-- **Data Processing**: Pandas, NumPy, Scikit-learn, PyPDF
-- **Configuration**: Python-dotenv
+- Python
+- Streamlit
+- Gemini
+- LangChain
+- ChromaDB
+- SQLite
+
+## Project Status
+
+Current Phase:
+- Day 1 Completed
+
+Upcoming:
+- Streamlit Chat Interface
+- Gemini Integration
+- RAG Pipeline
+- Sentiment Analysis
+- Ticket Classification
