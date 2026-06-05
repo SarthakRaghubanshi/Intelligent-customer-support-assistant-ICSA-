@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* Apply custom font globally */
+html, body, [class*="css"], [class*="st-"], .stMarkdown, .stText {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+/* Hide Default Streamlit Branding Elements */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+div[data-testid="stDecoration"] {visibility: hidden;}
+div[data-testid="stToolbar"] {visibility: hidden;}
+
+/* Custom styles for Sidebar */
+section[data-testid="stSidebar"] {
+    background-color: #0b0f19 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Padding adjustment for the chat contents area */
+.main .block-container {
+    padding-top: 3rem !important;
+    padding-bottom: 6rem !important;
+    max-width: 800px !important;
+}
+
+/* Style the native chat message container to feel premium and glassmorphic */
+div[data-testid="stChatMessage"] {
+    background-color: rgba(30, 41, 59, 0.35) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 16px !important;
+    padding: 1.2rem !important;
+    margin-bottom: 0.8rem !important;
+    backdrop-filter: blur(8px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Add custom focus indicator hover effect */
+div[data-testid="stChatMessage"]:hover {
+    border-color: rgba(108, 92, 231, 0.35) !important;
+    background-color: rgba(30, 41, 59, 0.55) !important;
+    box-shadow: 0 6px 16px rgba(108, 92, 231, 0.08) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Modernize chat input container and box */
+div[data-testid="stChatInput"] {
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 16px !important;
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2) !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Target internal textarea of chat input */
+div[data-testid="stChatInput"] textarea {
+    font-size: 0.95rem !important;
+    color: #F8FAFC !important;
+    line-height: 1.5 !important;
+}
+
+/* Custom Scrollbar for better UI experience */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(108, 92, 231, 0.4);
+}
