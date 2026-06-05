@@ -3,13 +3,17 @@ import time
 import os
 import sys
 
-# Ensure the frontend directory is in the python path
+# Ensure the frontend and root directories are in the python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(current_dir)
 if current_dir not in sys.path:
     sys.path.append(current_dir)
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
 
 from utils.session import init_session_state
 from components.sidebar import render_sidebar
+from backend.gemini_service import generate_response
 
 # Set up page configurations
 st.set_page_config(
@@ -68,8 +72,11 @@ if prompt := st.chat_input("Type your message here..."):
     with st.chat_message("user"):
         st.markdown(prompt)
         
-    # 3. Simulate bot response processing and output
-    response_text = "AI integration coming soon..."
+    # 3. Call the Gemini service to generate a response (with full error handling)
+    try:
+        response_text = generate_response(prompt)
+    except Exception as e:
+        response_text = f"⚠️ **Error:** {str(e)}"
     
     # 4. Display assistant placeholder and render the response with a typing animation
     with st.chat_message("assistant"):
