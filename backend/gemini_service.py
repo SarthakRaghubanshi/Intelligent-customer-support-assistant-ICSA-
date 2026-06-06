@@ -1,7 +1,14 @@
 import os
 import sys
-import google.generativeai as genai
 from dotenv import load_dotenv
+import google.generativeai as genai
+
+# A. Add the following imports
+from backend.rag.retriever import retrieve_relevant_chunks
+from backend.rag.prompt_builder import build_rag_prompt
+
+# B. Define a constant near the top of the file
+restaurant_id = "Restaurant_A"
 
 # Locate and load the .env file from the project root folder.
 # This ensures it resolves correctly regardless of whether the app is run from root or frontend/
@@ -15,15 +22,17 @@ load_dotenv(dotenv_path=env_path)
 # Retrieve the API key
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+# C. Modify ONLY def generate_response(user_message: str) -> str
 def generate_response(user_message: str) -> str:
     """
-    Sends a message to Google Gemini API and retrieves the generated response.
+    Sends a message to Google Gemini API grounded in the restaurant knowledge base,
+    if similarity threshold check passes.
     
     Args:
         user_message (str): The chat prompt submitted by the user.
         
     Returns:
-        str: The generated response from Gemini.
+        str: The generated response from Gemini or a static fallback response.
         
     Raises:
         ValueError: If the user input is empty or the API key is missing.
@@ -42,17 +51,52 @@ def generate_response(user_message: str) -> str:
             "GEMINI_API_KEY=AIzaSy..."
         )
 
-    # 3. Configure Google Generative AI
+    # 3. Retrieve chunks using the RAG retriever (k=5)
+    try:
+        relevant_chunks = retrieve_relevant_chunks(user_message, restaurant_id, k=5)
+    except Exception as e:
+        raise RuntimeError(f"Failed to retrieve context documents: {str(e)}")
+
+    # 4. Read best similarity score & apply confidence threshold
+    threshold = 0.75
+    
+    if not relevant_chunks:
+        # Fallback if no chunks found at all
+        best_score = 1.0
+        decision = "FALLBACK"
+    else:
+        best_score = relevant_chunks[0]["score"]
+        if best_score > threshold:
+            decision = "FALLBACK"
+        else:
+            decision = "PASS_TO_GEMINI"
+
+    # LOGGING REQUIREMENTS
+    print(f"\n=================== RAG DECISION LOG ===================")
+    print(f"User Query: {user_message}")
+    print(f"Best Similarity Score: {best_score:.4f}")
+    print(f"Threshold: {threshold}")
+    print(f"Decision: {decision}")
+    print(f"========================================================\n")
+
+    # If best_score > 0.75, return fallback directly without calling Gemini
+    if decision == "FALLBACK":
+        return "I could not find that information in the restaurant knowledge base."
+
+    # 5. If best_score <= 0.75, build prompt and call Gemini
+    grounded_prompt = build_rag_prompt(user_message, relevant_chunks)
+
+    # Configure Google Generative AI
     try:
         genai.configure(api_key=GEMINI_API_KEY)
     except Exception as e:
         raise RuntimeError(f"Failed to configure Gemini client: {str(e)}")
 
-    # 4. Generate Content via Gemini API
+    # Generate Content via Gemini API
     try:
         # Using the standard lightweight and fast model: gemini-2.5-flash
         model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(user_message)
+        response = model.generate_content(grounded_prompt)
         
         # Verify the response object and its text field
         if response and response.text:
