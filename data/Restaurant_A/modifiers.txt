@@ -1,0 +1,64 @@
+=========================================
+MODIFIERS & CUSTOMIZATION: PIZZA PARADISE
+=========================================
+
+1. CRUST OPTIONS
+----------------
+Customers can choose from the following crusts for any 10", 12", or 16" pizza:
+* Classic Sourdough (Default)
+  - Description: Our signature 48-hour cold-fermented dough made with Italian Tipo 00 flour. Creates a blistered, chewy, and crispy Neapolitan-style crust.
+  - Price: Included in base pizza price.
+* Gluten-Free Crust (Only available in 10" Personal size)
+  - Description: Rice-and-tapioca-based dough prepared in a designated gluten-free zone to prevent cross-contamination. Crisps up beautifully.
+  - Price: +₹99
+* Stuffed Crust (Available in 12" Medium and 16" Large sizes)
+  - Description: Our classic sourdough crust rolled and stuffed with a premium string mozzarella cheese, brushed with garlic butter.
+  - Price: 12" Medium: +₹119 | 16" Large: +₹149
+* Thin Crust (Available in all sizes)
+  - Description: A Roman-style ultra-thin, cracker-crisp crust made with high-protein wheat flour.
+  - Price: Included in base pizza price.
+
+2. CHEESE CUSTOMIZATION
+-----------------------
+* Extra Mozzarella Cheese (Standard Dairy)
+  - 10" Personal: +₹49 | 12" Medium: +₹79 | 16" Large: +₹99
+* Substitute Vegan Mozzarella (Dairy-Free)
+  - Available as a substitution on any pizza.
+  - Price: +₹59 (All sizes)
+* Extra Vegan Mozzarella
+  - 10" Personal: +₹59 | 12" Medium: +₹89 | 16" Large: +₹119
+* Add Goat Cheese / Ricotta Cheese Dollops
+  - 10" Personal: +₹59 | 12" Medium: +₹89 | 16" Large: +₹119
+
+3. EXTRA TOPPINGS
+-----------------
+Toppings can be added to any pizza. Prices vary by size:
+
+* Veggie & Vegan Toppings
+  - Options: Sliced red onions, bell peppers, fresh baby spinach, cremini mushrooms, cherry tomatoes, jalapeños, black olives, Kalamata olives, pineapple, fresh basil, roasted garlic cloves, artichoke hearts, sun-dried tomatoes.
+  - Pricing:
+    - 10" Personal: +₹39 per topping
+    - 12" Medium: +₹49 per topping
+    - 16" Large: +₹59 per topping
+
+* Meat Toppings
+  - Options: Cup-and-char pepperoni, classic deli pepperoni, house Italian sausage crumbles, sliced meatballs, smoked ham, grilled chicken pieces, bacon bits.
+  - Pricing:
+    - 10" Personal: +₹59 per topping
+    - 12" Medium: +₹79 per topping
+    - 16" Large: +₹99 per topping
+
+* Premium Plant-Based Meat
+  - Options: House-made vegan sausage crumbles (soy/pea protein based).
+  - Pricing:
+    - 10" Personal: +₹69 per topping
+    - 12" Medium: +₹89 per topping
+    - 16" Large: +₹109 per topping
+
+4. SPICE LEVEL OPTIONS
+----------------------
+Applied to the sauce base or sprinkled on top. No extra charge.
+* Mild (No heat, standard kid-friendly flavor)
+* Medium (A subtle kick, includes a light pinch of red chili flakes in the sauce)
+* Hot (For spice enthusiasts, includes red chili flakes and sliced pickled jalapeños)
+* Inferno (Extremely spicy, includes ghost pepper flakes and chopped fresh habanero peppers. *Caution: very hot!*)

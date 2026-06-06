@@ -1,0 +1,39 @@
+=========================================
+BUSINESS RULES & PROTOCOLS: PIZZA PARADISE
+=========================================
+
+1. ORDER MODIFICATION RULES
+---------------------------
+* Adding Items:
+  - Items can be added to an order at any time before the order enters the "In Oven" stage. Additional charges will apply, and payment must be processed immediately via the app/website or collected at delivery/pickup.
+* Removing or Changing Items:
+  - Changes to toppings, crust options, or removing items can only be made within 5 minutes of order placement.
+  - After 5 minutes, the order is locked for prep, and modifications cannot be accommodated.
+* Changing Order Type (Pickup to Delivery / Delivery to Pickup):
+  - Changing from Pickup to Delivery: Allowed up to 10 minutes after order placement, provided the customer's address is within our 10.0-kilometer delivery radius. The customer must pay the applicable delivery fee.
+  - Changing from Delivery to Pickup: Allowed up to 10 minutes after order placement. The delivery fee will be refunded to the customer as store credit.
+
+2. PAYMENT RULES
+----------------
+* Accepted Payment Methods:
+  - Online Payments: Visa, Mastercard, American Express, Discover, Apple Pay, Google Pay.
+  - In-Store Payments: Cash, Debit Cards, Visa, Mastercard, Amex, Pizza Paradise Gift Cards/Loyalty Points.
+  - Cash on Delivery (COD): Accepted for orders under ₹1500. For security reasons, our drivers do not carry more than ₹500 in change. Customers must have exact or near-exact change ready. Orders exceeding ₹1500 must be prepaid online.
+* Credit Card Verification:
+  - For online orders exceeding ₹2000, the physical card and a matching government-issued photo ID must be presented upon pickup or delivery.
+* Taxes and Fees:
+  - All orders are subject to local state sales tax (8.25%). A standard packaging fee of ₹15 is applied to all take-out and delivery orders to cover eco-friendly compostable pizza boxes.
+
+3. SPECIAL RESTRICTIONS & POLICIES
+----------------------------------
+* Age-Restricted Items:
+  - Pizza Paradise does not serve alcoholic beverages for delivery or pickup.
+* Dietary Cross-Contamination Warning:
+  - While we offer gluten-free crusts and dairy-free vegan cheese prepared in a separate designated workspace with designated clean utensils, our kitchen is a high-gluten and dairy environment. We cannot guarantee 100% trace-free environment for customers with severe Celiac disease or life-threatening dairy allergies.
+* Large Group / Catering Orders:
+  - Orders containing 6 or more pizzas, or exceeding a total subtotal of ₹3500, are classified as "Catering Orders".
+  - Catering orders must be placed at least 3 hours in advance.
+  - A 10% auto-gratuity fee is added to all catering orders to support our kitchen staff.
+* Discount Codes and Promotions:
+  - Only one discount code or promotional coupon can be applied per order. Coupons cannot be stacked.
+  - Promotions do not apply to catering orders or build-your-own pizza modifiers.

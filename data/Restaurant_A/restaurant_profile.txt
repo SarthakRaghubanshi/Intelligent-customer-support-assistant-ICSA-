@@ -1,0 +1,33 @@
+=========================================
+RESTAURANT PROFILE: PIZZA PARADISE
+=========================================
+
+General Information:
+--------------------
+Restaurant Name: Pizza Paradise
+Concept: Gourmet Wood-Fired Pizzeria & Italian Bistro
+Cuisine: Contemporary Italian, Handcrafted Artisan Pizza, Pastas, and Fresh Salads
+Tagline: "A Slice of Heaven in Every Bite"
+Address: Plot 15, Block K, Sector 18, Noida, Uttar Pradesh 201301, India
+Main Phone: +91 120 4927200
+Order Support Line: +91 98765 43210
+General Email: info@pizzaparadise.com
+Customer Support Email: support@pizzaparadise.com
+Website: https://www.pizzaparadise.com
+
+Brand & Quality Promise:
+------------------------
+At Pizza Paradise, we are committed to elevating the pizza-ordering experience. Our hallmark is our signature crust, crafted from a natural 48-hour cold-fermented sourdough starter made with organic Italian Tipo 00 flour. Each pizza is hand-stretched and cooked in our custom wood-fired brick oven at a blistering 900°F, taking only 90 to 120 seconds to reach a blistered, chewy, and crispy perfection. We source our San Marzano tomatoes directly from Italy, and our fresh mozzarella cheese is delivered daily from local artisan dairies. We prioritize dietary inclusion, maintaining a completely separate preparation station and utensils for gluten-free and plant-based (vegan) items to ensure safety for customers with allergies and preferences.
+
+Operating Hours:
+----------------
+* Monday:    11:00 AM - 10:00 PM
+* Tuesday:   11:00 AM - 10:00 PM
+* Wednesday: 11:00 AM - 10:00 PM
+* Thursday:  11:00 AM - 10:00 PM
+* Friday:    11:00 AM - 11:00 PM
+* Saturday:  11:00 AM - 11:00 PM
+* Sunday:    12:00 PM - 09:00 PM
+
+*Kitchen closes 30 minutes prior to restaurant closing.*
+*Holiday hours may vary; check our website or app announcements on major holidays.*

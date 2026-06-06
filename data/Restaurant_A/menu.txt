@@ -1,0 +1,67 @@
+=========================================
+OFFICIAL MENU: PIZZA PARADISE
+=========================================
+
+1. VEGETARIAN PIZZAS
+--------------------
+* Margherita Royale - ₹299 (Personal 10") / ₹499 (Medium 12") / ₹799 (Large 16")
+  - Fresh mozzarella, organic San Marzano tomato sauce, fresh basil leaves, extra virgin olive oil.
+* Four Cheese Garden - ₹349 (Personal 10") / ₹549 (Medium 12") / ₹849 (Large 16")
+  - Mozzarella, gorgonzola, parmesan, ricotta, cherry tomatoes, spinach.
+* Truffle Mushroom - ₹399 (Personal 10") / ₹599 (Medium 12") / ₹899 (Large 16")
+  - Wild cremini and shiitake mushrooms, white truffle oil, fontina cheese, fresh rosemary.
+
+2. VEGAN PIZZAS
+---------------
+* Vegan Garden Party - ₹329 (Personal 10") / ₹529 (Medium 12") / ₹829 (Large 16")
+  - Dairy-free vegan mozzarella, tomato sauce, artichoke hearts, roasted bell peppers, red onion, kalamata olives.
+* Spicy Vegan Sausage - ₹349 (Personal 10") / ₹549 (Medium 12") / ₹849 (Large 16")
+  - Vegan mozzarella, house-made plant-based spicy sausage crumbles, jalapeños, spicy marinara sauce, fresh arugula.
+* Vegan Avocado Dream - ₹399 (Personal 10") / ₹599 (Medium 12") / ₹899 (Large 16")
+  - Vegan mozzarella, sliced fresh avocado, cherry tomatoes, baby spinach, garlic-infused olive oil, vegan garlic aioli drizzle.
+
+3. NON-VEGETARIAN PIZZAS
+------------------------
+* Ultimate Pepperoni Rush - ₹349 (Personal 10") / ₹549 (Medium 12") / ₹849 (Large 16")
+  - Double pepperoni (classic cup-and-char and large deli pepperoni), fresh mozzarella, tomato sauce, oregano.
+* Tuscan Meat Feast - ₹399 (Personal 10") / ₹649 (Medium 12") / ₹949 (Large 16")
+  - Italian sausage, pepperoni, sliced meatballs, smoked ham, bacon, mozzarella, hearty marinara sauce.
+* Chicken Pesto Bliss - ₹399 (Personal 10") / ₹599 (Medium 12") / ₹899 (Large 16")
+  - Flame-grilled chicken breast, creamy basil pesto base, cherry tomatoes, sun-dried tomatoes, toasted pine nuts, fresh mozzarella.
+
+4. PASTA
+--------
+* Classic Fettuccine Alfredo - ₹299
+  - Fettuccine pasta tossed in a rich, velvety parmesan and butter cream sauce. (Add Grilled Chicken: +₹99, Add Gulf Shrimp: +₹149)
+* Spicy Penne Arrabbiata - ₹279
+  - Penne pasta tossed in a fiery San Marzano tomato sauce with garlic, chili flakes, and fresh parsley. (Add Italian Sausage: +₹89)
+* Baked Beef Lasagna - ₹349
+  - Layers of lasagna pasta sheets, seasoned ground beef, ricotta cheese, mozzarella, parmesan, and signature marinara sauce baked to a golden brown.
+
+5. GARLIC BREAD
+---------------
+* Paradise Garlic Bread - ₹129
+  - Freshly baked Italian baguette brushed with garlic butter, extra virgin olive oil, and Italian herbs, served with a side of marinara sauce.
+* Cheesy Garlic Bread - ₹179
+  - Baguette smothered in garlic butter, melted fresh mozzarella, and grated parmesan, toasted under the grill, served with marinara.
+* Vegan Cheesy Garlic Bread - ₹199
+  - Baguette coated with vegan garlic spread, melted vegan mozzarella, and Italian herbs, served with marinara.
+
+6. BEVERAGES
+------------
+* Soft Drinks (Can) - ₹59
+  - Coca-Cola, Diet Coke, Sprite, Fanta Orange, Dr. Pepper.
+* San Pellegrino Sparkling Water (750ml) - ₹149
+* Paradise Iced Tea (16 oz) - ₹79
+  - House-brewed sweetened or unsweetened black tea with a splash of fresh lemon.
+* Organic Lemonade (16 oz) - ₹89
+  - Freshly squeezed lemons, pure cane sugar, and filtered water.
+
+7. DESSERTS
+-----------
+* Signature Tiramisu - ₹199
+  - Ladyfingers dipped in espresso and coffee liqueur, layered with whipped mascarpone cream and dusted with dark cocoa powder.
+* Wood-Fired Nutella Calzone - ₹249
+  - Stuffed pizza pocket filled with creamy Nutella and sliced fresh strawberries, baked in the wood oven, dusted with powdered sugar.
+* Vegan Chocolate Decadence Cake - ₹219
+  - Rich, moist double-chocolate cake made with vegan ingredients, served with a strawberry glaze.
