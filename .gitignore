@@ -150,3 +150,7 @@ cython_debug/
 *.sw?
 *.swo
 .DS_Store
+
+# RAG vector database files
+data/chroma_db/
+
