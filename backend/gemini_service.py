@@ -1,11 +1,13 @@
 import os
 import sys
+import datetime
 from dotenv import load_dotenv
 import google.generativeai as genai
 
 # A. Add the following imports
 from backend.rag.retriever import retrieve_relevant_chunks
 from backend.rag.prompt_builder import build_rag_prompt
+from backend.classifiers.intent_classifier import classify_intent
 
 # B. Define a constant near the top of the file
 restaurant_id = "Restaurant_A"
@@ -42,6 +44,34 @@ def generate_response(user_message: str) -> str:
     # 1. Handle Empty Input
     if not user_message or not user_message.strip():
         raise ValueError("User message cannot be empty.")
+
+    # 1a. Run Intent Classification with Fault-Tolerant Fallback
+    try:
+        intent_result = classify_intent(user_message)
+    except Exception:
+        intent_result = {
+            "intent": "Unknown",
+            "confidence": 0.0,
+            "layer": "Fallback"
+        }
+
+    # Compile intent metadata
+    intent_metadata = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "query": user_message,
+        "intent": intent_result["intent"],
+        "confidence": intent_result["confidence"],
+        "layer": intent_result["layer"]
+    }
+
+    # Log intent metadata to console
+    print(f"\n=================== [INTENT_LOG] ===================")
+    print(f"Timestamp:             {intent_metadata['timestamp']}")
+    print(f"Query:                 {intent_metadata['query']}")
+    print(f"Predicted Intent:      {intent_metadata['intent']}")
+    print(f"Confidence Score:      {intent_metadata['confidence']:.4f}")
+    print(f"Classification Layer:  {intent_metadata['layer']}")
+    print(f"=====================================================\n")
 
     # 2. Handle Missing API Key
     if not GEMINI_API_KEY:
