@@ -10,6 +10,7 @@ from backend.rag.retriever import retrieve_relevant_chunks
 from backend.rag.prompt_builder import build_rag_prompt
 from backend.classifiers.intent_classifier import classify_intent
 from backend.analytics.event_logger import create_event
+from backend.analytics.session_analytics import update_session_analytics
 
 # B. Define a constant near the top of the file
 restaurant_id = "Restaurant_A"
@@ -156,7 +157,7 @@ def generate_response(user_message: str) -> str:
     # Calculate turn latency and generate event metadata (12 required fields)
     latency_ms = (time.perf_counter() - start_time) * 1000.0
     try:
-        create_event({
+        event = create_event({
             "timestamp": datetime.datetime.now().isoformat(),
             "restaurant_id": restaurant_id,
             "query": user_message,
@@ -172,5 +173,12 @@ def generate_response(user_message: str) -> str:
         })
     except Exception as e:
         print(f"Analytics event creation failed: {str(e)}", file=sys.stderr)
+        event = None
+
+    if event:
+        try:
+            update_session_analytics(event)
+        except Exception as e:
+            print(f"Session analytics update failed: {str(e)}", file=sys.stderr)
 
     return response_text
