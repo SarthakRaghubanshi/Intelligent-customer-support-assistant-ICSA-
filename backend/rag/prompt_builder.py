@@ -33,6 +33,8 @@ def build_rag_prompt(
     """
     intent = metadata.get("intent") if metadata else None
     sentiment = metadata.get("sentiment") if metadata else None
+    language = metadata.get("language") if metadata else None
+    language_code = metadata.get("language_code") if metadata else None
 
     # Header instructions
     system_instructions = (
@@ -68,6 +70,8 @@ def build_rag_prompt(
         metadata_lines.append(f"Detected Intent: {intent}")
     if sentiment:
         metadata_lines.append(f"Detected Sentiment: {sentiment}")
+    if language and language_code:
+        metadata_lines.append(f"Detected Language: {language} ({language_code})")
 
     if metadata_lines:
         query_section = "\n".join(metadata_lines) + f"\n\nUser Query:\n{query}"

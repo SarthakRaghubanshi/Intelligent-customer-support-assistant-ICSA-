@@ -73,6 +73,18 @@ def generate_response(user_message: str) -> str:
             "layer": "Fallback"
         }
 
+    # 1c. Run Language Detection with Fault-Tolerant Fallback
+    from backend.classifiers.language_detector import detect_language
+    try:
+        language_result = detect_language(user_message)
+    except Exception:
+        language_result = {
+            "language": "Unknown",
+            "code": "unknown",
+            "confidence": 0.0,
+            "layer": "Fallback"
+        }
+
     # 2. Handle Missing API Key
     if not GEMINI_API_KEY:
         raise ValueError(
@@ -114,6 +126,10 @@ def generate_response(user_message: str) -> str:
     print(f"Predicted Sentiment:   {sentiment_result['sentiment']}")
     print(f"Sentiment Confidence:  {sentiment_result['confidence']:.4f}")
     print(f"Sentiment Layer:       {sentiment_result['layer']}")
+    print(f"Predicted Language:    {language_result['language']}")
+    print(f"Language Code:         {language_result['code']}")
+    print(f"Language Confidence:   {language_result['confidence']:.4f}")
+    print(f"Language Layer:        {language_result['layer']}")
     print(f"RAG Used:              {decision == 'PASS_TO_GEMINI'}")
     print(f"Best Similarity Score: {best_score:.4f}")
     print(f"Threshold:             {threshold}")
@@ -127,7 +143,9 @@ def generate_response(user_message: str) -> str:
         # 5. If best_score <= 0.75, build prompt and call Gemini
         metadata = {
             "intent": intent_result["intent"],
-            "sentiment": sentiment_result["sentiment"]
+            "sentiment": sentiment_result["sentiment"],
+            "language": language_result["language"],
+            "language_code": language_result["code"]
         }
         grounded_prompt = build_rag_prompt(user_message, relevant_chunks, metadata=metadata)
 
