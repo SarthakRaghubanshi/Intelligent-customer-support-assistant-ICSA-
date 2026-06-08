@@ -4,6 +4,8 @@ from typing import Dict, Any
 _stats = {
     "total_queries": 0,
     "intent_distribution": {},
+    "sentiment_distribution": {},
+    "language_distribution": {},
     "fallback_count": 0,
     "gemini_count": 0,
     
@@ -28,6 +30,8 @@ def update_session_analytics(event: Dict[str, Any]) -> Dict[str, Any]:
     """
     # Extract values safely
     intent = event.get("intent", "Unknown")
+    sentiment = event.get("sentiment", "Neutral")
+    language = event.get("language", "Unknown")
     response_source = event.get("response_source", "")
     latency_ms = event.get("latency_ms", 0.0)
     best_similarity_score = event.get("best_similarity_score", 1.0)
@@ -37,6 +41,10 @@ def update_session_analytics(event: Dict[str, Any]) -> Dict[str, Any]:
 
     # 2. Update intent distribution
     _stats["intent_distribution"][intent] = _stats["intent_distribution"].get(intent, 0) + 1
+
+    # Update sentiment and language distributions
+    _stats["sentiment_distribution"][sentiment] = _stats["sentiment_distribution"].get(sentiment, 0) + 1
+    _stats["language_distribution"][language] = _stats["language_distribution"].get(language, 0) + 1
 
     # 3. Update response counts
     if response_source == "Gemini":
@@ -55,6 +63,8 @@ def update_session_analytics(event: Dict[str, Any]) -> Dict[str, Any]:
     print(f"\n=================== [SESSION_LOG] ===================")
     print(f"Total Queries:            {_stats['total_queries']}")
     print(f"Intent Distribution:      {_stats['intent_distribution']}")
+    print(f"Sentiment Distribution:   {_stats['sentiment_distribution']}")
+    print(f"Language Distribution:    {_stats['language_distribution']}")
     print(f"Fallback Count:           {_stats['fallback_count']}")
     print(f"Gemini Count:             {_stats['gemini_count']}")
     print(f"Average Latency:          {_stats['average_latency_ms']:.2f} ms")
@@ -76,6 +86,8 @@ def reset_session_analytics() -> None:
     """
     _stats["total_queries"] = 0
     _stats["intent_distribution"] = {}
+    _stats["sentiment_distribution"] = {}
+    _stats["language_distribution"] = {}
     _stats["fallback_count"] = 0
     _stats["gemini_count"] = 0
     _stats["_total_latency_ms"] = 0.0

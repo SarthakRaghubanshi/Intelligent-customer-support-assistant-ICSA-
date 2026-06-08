@@ -18,7 +18,16 @@ def create_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
     # 1. Generate unique event_id internally
     event_data["event_id"] = str(uuid.uuid4())
 
-    # 2. Schema field validations for the 13 resulting fields
+    # Safe defaults for backward compatibility
+    event_data.setdefault("sentiment", "Neutral")
+    event_data.setdefault("sentiment_confidence", 0.0)
+    event_data.setdefault("sentiment_layer", "Legacy")
+    event_data.setdefault("language", "Unknown")
+    event_data.setdefault("language_code", "unknown")
+    event_data.setdefault("language_confidence", 0.0)
+    event_data.setdefault("language_layer", "Legacy")
+
+    # 2. Schema field validations for the 20 resulting fields
     required_fields = {
         "event_id": str,
         "timestamp": str,
@@ -27,6 +36,13 @@ def create_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
         "intent": str,
         "intent_confidence": float,
         "intent_layer": str,
+        "sentiment": str,
+        "sentiment_confidence": float,
+        "sentiment_layer": str,
+        "language": str,
+        "language_code": str,
+        "language_confidence": float,
+        "language_layer": str,
         "best_similarity_score": float,
         "rag_decision": str,
         "retrieved_sources": list,
@@ -60,6 +76,13 @@ def create_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
     print(f"Predicted Intent:      {event_data['intent']}")
     print(f"Confidence Score:      {event_data['intent_confidence']:.4f}")
     print(f"Classification Layer:  {event_data['intent_layer']}")
+    print(f"Predicted Sentiment:   {event_data['sentiment']}")
+    print(f"Sentiment Confidence:  {event_data['sentiment_confidence']:.4f}")
+    print(f"Sentiment Layer:       {event_data['sentiment_layer']}")
+    print(f"Predicted Language:    {event_data['language']}")
+    print(f"Language Code:         {event_data['language_code']}")
+    print(f"Language Confidence:   {event_data['language_confidence']:.4f}")
+    print(f"Language Layer:        {event_data['language_layer']}")
     print(f"Best Similarity Score: {event_data['best_similarity_score']:.4f}")
     print(f"RAG Decision:          {event_data['rag_decision']}")
     print(f"Retrieved Sources:     {event_data['retrieved_sources']}")
