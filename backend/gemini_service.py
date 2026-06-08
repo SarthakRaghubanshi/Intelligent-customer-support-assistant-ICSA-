@@ -48,6 +48,8 @@ def generate_response(user_message: str) -> str:
     if not user_message or not user_message.strip():
         raise ValueError("User message cannot be empty.")
 
+    from backend.classifiers.sentiment_classifier import classify_sentiment
+
     # Start Timer for Latency Calculation
     start_time = time.perf_counter()
 
@@ -61,14 +63,15 @@ def generate_response(user_message: str) -> str:
             "layer": "Fallback"
         }
 
-    # Log intent metadata to console with legacy INTENT_LOG format
-    print(f"\n=================== [INTENT_LOG] ===================")
-    print(f"Timestamp:             {datetime.datetime.now().isoformat()}")
-    print(f"Query:                 {user_message}")
-    print(f"Predicted Intent:      {intent_result['intent']}")
-    print(f"Confidence Score:      {intent_result['confidence']:.4f}")
-    print(f"Classification Layer:  {intent_result['layer']}")
-    print(f"=====================================================\n")
+    # 1b. Run Sentiment Classification with Fault-Tolerant Fallback
+    try:
+        sentiment_result = classify_sentiment(user_message)
+    except Exception:
+        sentiment_result = {
+            "sentiment": "Neutral",
+            "confidence": 0.0,
+            "layer": "Fallback"
+        }
 
     # 2. Handle Missing API Key
     if not GEMINI_API_KEY:
@@ -101,20 +104,37 @@ def generate_response(user_message: str) -> str:
         decision = "FALLBACK"
         response_source = "System Fallback"
 
-    # LOGGING REQUIREMENTS
-    print(f"\n=================== RAG DECISION LOG ===================")
-    print(f"User Query: {user_message}")
+    # LOGGING REQUIREMENTS - Unified [PIPELINE_LOG]
+    print(f"\n=================== [PIPELINE_LOG] ===================")
+    print(f"Timestamp:             {datetime.datetime.now().isoformat()}")
+    print(f"Query:                 {user_message}")
+    print(f"Predicted Intent:      {intent_result['intent']}")
+    print(f"Intent Confidence:     {intent_result['confidence']:.4f}")
+    print(f"Intent Layer:          {intent_result['layer']}")
+    print(f"Predicted Sentiment:   {sentiment_result['sentiment']}")
+    print(f"Sentiment Confidence:  {sentiment_result['confidence']:.4f}")
+    print(f"Sentiment Layer:       {sentiment_result['layer']}")
+    print(f"RAG Used:              {decision == 'PASS_TO_GEMINI'}")
     print(f"Best Similarity Score: {best_score:.4f}")
-    print(f"Threshold: {threshold}")
-    print(f"Decision: {decision}")
-    print(f"========================================================\n")
+    print(f"Threshold:             {threshold}")
+    print(f"Decision:              {decision}")
+    print(f"======================================================\n")
 
     # If best_score > 0.75, return fallback directly without calling Gemini
     if decision == "FALLBACK":
         response_text = "I could not find that information in the restaurant knowledge base."
     else:
         # 5. If best_score <= 0.75, build prompt and call Gemini
-        grounded_prompt = build_rag_prompt(user_message, relevant_chunks)
+        metadata = {
+            "intent": intent_result["intent"],
+            "sentiment": sentiment_result["sentiment"]
+        }
+        grounded_prompt = build_rag_prompt(user_message, relevant_chunks, metadata=metadata)
+
+        # Print the exact grounded prompt string before Gemini is called
+        print(f"\n=================== [GROUNDED_PROMPT] ===================")
+        print(grounded_prompt)
+        print(f"==========================================================\n")
 
         # Configure Google Generative AI
         try:

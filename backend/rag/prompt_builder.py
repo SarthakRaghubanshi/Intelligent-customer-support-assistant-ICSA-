@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 # Setup sys.path to resolve other modules if run directly
 current_file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,21 +13,27 @@ if root_dir not in sys.path:
 
 from backend.rag.retriever import retrieve_relevant_chunks
 
-def build_rag_prompt(query: str, retrieved_chunks: List[Dict[str, Any]]) -> str:
+def build_rag_prompt(
+    query: str,
+    retrieved_chunks: List[Dict[str, Any]],
+    metadata: Optional[Dict[str, Any]] = None
+) -> str:
     """
-    Combines the query with system instructions and formatted context chunks
-    exactly in the format required for the LLM input.
+    Combines the query with system instructions, formatted context chunks,
+    and optional metadata (such as intent and sentiment).
     
     Args:
         query (str): The customer's original query.
         retrieved_chunks (List[Dict[str, Any]]): List of chunk dictionaries containing
                                                  'content', 'source', and 'restaurant_id'.
+        metadata (Optional[Dict[str, Any]]): Optional dictionary containing 'intent' and 'sentiment'.
                                                  
     Returns:
         str: The fully formatted RAG prompt.
     """
-    # 3. Construct a structured prompt containing: System instructions, Context, and User Question
-    
+    intent = metadata.get("intent") if metadata else None
+    sentiment = metadata.get("sentiment") if metadata else None
+
     # Header instructions
     system_instructions = (
         "You are a helpful customer support assistant for Pizza Paradise.\n\n"
@@ -36,29 +42,44 @@ def build_rag_prompt(query: str, retrieved_chunks: List[Dict[str, Any]]) -> str:
         '"I could not find that information in the restaurant knowledge base."'
     )
     
-    # 4. Context section formatting
+    if sentiment:
+        system_instructions += (
+            "\n\nAdjust your response tone to be appropriate for the detected sentiment "
+            "(e.g., be empathetic for Negative sentiment, warm and appreciative for Positive sentiment). "
+            "However, you must answer using ONLY the provided context. The sentiment must influence the response tone only; "
+            "it must NOT override the retrieved facts, trigger refunds/escalations, or modify restaurant policies/business logic."
+        )
+    
+    # Context section formatting
     context_sections = []
     for idx, chunk in enumerate(retrieved_chunks):
         source = chunk.get("source", "unknown_source")
         content = chunk.get("content", "").strip()
         
-        # Format chunk representation:
-        # [Chunk 1]
-        # Source: refund_policy.txt
-        #
-        # <chunk content>
+        # Format chunk representation
         chunk_str = f"[Chunk {idx + 1}]\nSource: {source}\n\n{content}"
         context_sections.append(chunk_str)
         
     context_block = "\n\n".join(context_sections)
     
-    # 4. & 5. Compile the final prompt string
+    # Format the user query section based on presence of metadata
+    metadata_lines = []
+    if intent:
+        metadata_lines.append(f"Detected Intent: {intent}")
+    if sentiment:
+        metadata_lines.append(f"Detected Sentiment: {sentiment}")
+
+    if metadata_lines:
+        query_section = "\n".join(metadata_lines) + f"\n\nUser Query:\n{query}"
+    else:
+        query_section = f"User Question:\n\n{query}"
+        
+    # Compile the final prompt string
     prompt = (
         f"{system_instructions}\n\n"
         "Context:\n\n"
         f"{context_block}\n\n"
-        "User Question:\n\n"
-        f"{query}\n\n"
+        f"{query_section}\n\n"
         "Answer:"
     )
     
