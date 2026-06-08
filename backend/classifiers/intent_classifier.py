@@ -33,14 +33,20 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
     the query's intent locally (Layer 1).
     """
     normalized = query.strip().lower()
-    
-    # 1. Order Modification (evaluated before Refund)
-    if re.search(r'\bcancel\b.*\border\b', normalized) or \
-       re.search(r'\bchange\b.*\border\b', normalized) or \
-       re.search(r'\bmodify\b.*\border\b', normalized) or \
-       re.search(r'\bedit\b.*\border\b', normalized) or \
-       re.search(r'\bchange my order\b', normalized):
-        intent = "Order Modification"
+
+    # 1. Escalation Request
+    if re.search(r'\bmanager\b', normalized) or \
+       re.search(r'\bhuman\b', normalized) or \
+       re.search(r'\bagent\b', normalized) or \
+       re.search(r'\brepresentative\b', normalized) or \
+       re.search(r'\bescalate\b', normalized) or \
+       re.search(r'\breal\s+person\b', normalized) or \
+       re.search(r'\bactual\s+person\b', normalized) or \
+       re.search(r'\bcustomer\s+representative\b', normalized) or \
+       re.search(r'\bsupport\s+representative\b', normalized) or \
+       re.search(r'\bsomeone\s+from\s+support\b', normalized) or \
+       re.search(r'\bhuman\s+support\b', normalized):
+        intent = "Escalation Request"
         return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
 
     # 2. Refund Inquiry
@@ -50,25 +56,10 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
         intent = "Refund Inquiry"
         return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
 
-    # 3. Order Tracking
-    if re.search(r'\btrack\b', normalized) or \
-       re.search(r'\bstatus\b', normalized) or \
-       re.search(r'\bwhere\s*is\s*my\s*order\b', normalized):
-        intent = "Order Tracking"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
-
-    # 4. Escalation Request
-    if re.search(r'\bmanager\b', normalized) or \
-       re.search(r'\bhuman\b', normalized) or \
-       re.search(r'\bagent\b', normalized) or \
-       re.search(r'\brepresentative\b', normalized) or \
-       re.search(r'\bescalate\b', normalized):
-        intent = "Escalation Request"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
-
-    # 5. Complaint
+    # 3. Complaint
     if re.search(r'\bcold\b', normalized) or \
-       re.search(r'\blate\b', normalized) or \
+       re.search(r'\b(is|arrived|running)\s+late\b', normalized) or \
+       re.search(r'\btoo\s+late\b', normalized) or \
        re.search(r'\bwrong\b', normalized) or \
        re.search(r'\bburnt\b', normalized) or \
        re.search(r'\bhair\b', normalized) or \
@@ -77,31 +68,60 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
        re.search(r'\bterrible\b', normalized) or \
        re.search(r'\bdisgusting\b', normalized) or \
        re.search(r'\bissue\b', normalized) or \
-       re.search(r'\bproblem\b', normalized):
+       re.search(r'\bproblem\b', normalized) or \
+       re.search(r'\bwrong\s+item\b', normalized) or \
+       re.search(r'\bincorrect\s+item\b', normalized) or \
+       re.search(r'\breceived\s+wrong\s+order\b', normalized) or \
+       re.search(r'\bsent\s+me\s+the\s+wrong\b', normalized) or \
+       re.search(r'\breceived\s+something\s+else\b', normalized) or \
+       re.search(r'\bincorrect\s+delivery\b', normalized) or \
+       re.search(r'\border\s+mistake\b', normalized) or \
+       re.search(r'\bsent\s+me\b.*\binstead\s+of\b', normalized) or \
+       re.search(r'\bmissing\b', normalized):
         intent = "Complaint"
         return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
 
-    # 6. Menu Inquiry
-    if re.search(r'\bmenu\b', normalized) or \
-       re.search(r'\bpizza\b', normalized) or \
-       re.search(r'\btopping\b', normalized) or \
-       re.search(r'\bvegan\b', normalized) or \
-       re.search(r'\bvegetarian\b', normalized) or \
-       re.search(r'\bgluten\s*free\b', normalized) or \
-       re.search(r'\bgluten-free\b', normalized) or \
-       re.search(r'\bprice\b', normalized) or \
-       re.search(r'\bcost\b', normalized) or \
-       re.search(r'\bdish\b', normalized):
-        intent = "Menu Inquiry"
+    # 4. Order Tracking
+    if re.search(r'\btrack\b', normalized) or \
+       re.search(r'\bstatus\b', normalized) or \
+       re.search(r'\bwhere\s+is\s+my\s+order\b', normalized) or \
+       re.search(r'\bwhere\s+is\s+my\s+food\b', normalized) or \
+       re.search(r'\border\s+status\b', normalized) or \
+       re.search(r'\border\b.*\bsent\b', normalized) or \
+       re.search(r'\bdispatched\b', normalized) or \
+       re.search(r'\bout\s+for\s+delivery\b', normalized) or \
+       re.search(r'\border\s+progress\b', normalized) or \
+       re.search(r'\btracking\b', normalized) or \
+       re.search(r'\bwhere\s+is\s+my\b.*\b(pizza|food|order)\b', normalized):
+        intent = "Order Tracking"
         return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
 
-    # 7. Delivery Inquiry
-    if re.search(r'\bdelivery\b', normalized) or \
-       re.search(r'\bdeliver\b', normalized):
-        intent = "Delivery Inquiry"
+    # 5. Order Modification
+    if re.search(r'\bcancel\b.*\border\b', normalized) or \
+       re.search(r'\bchange\b.*\border\b', normalized) or \
+       re.search(r'\bmodify\b.*\border\b', normalized) or \
+       re.search(r'\bedit\b.*\border\b', normalized) or \
+       re.search(r'\bchange\s+my\s+order\b', normalized) or \
+       re.search(r'\badd\s+item\b', normalized) or \
+       re.search(r'\bremove\s+item\b', normalized) or \
+       re.search(r'\bmodify\s+item\b', normalized) or \
+       re.search(r'\bchange\s+toppings\b', normalized) or \
+       re.search(r'\bextra\s+topping\b', normalized) or \
+       re.search(r'\badd\s+drink\b', normalized) or \
+       re.search(r'\badd\s+soda\b', normalized) or \
+       re.search(r'\bupdate\s+order\b', normalized) or \
+       re.search(r'\bedit\s+order\b', normalized) or \
+       re.search(r'\bcancel\s+my\s+order\b', normalized) or \
+       re.search(r'\bcancel\b', normalized) or \
+       re.search(r'\bmodify\b', normalized) or \
+       re.search(r'\bchange\s+my\b', normalized) or \
+       re.search(r'\badd\b.*\bto\b.*\border\b', normalized) or \
+       re.search(r'\bchange\b.*\btoppings?\b', normalized) or \
+       re.search(r'\badd\b.*\b(soda|drink|topping|item)\b', normalized):
+        intent = "Order Modification"
         return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
 
-    # 8. Pickup Inquiry
+    # 6. Pickup Inquiry
     if re.search(r'\bpickup\b', normalized) or \
        re.search(r'\bpick\s+up\b', normalized) or \
        re.search(r'\bcollect\b', normalized) or \
@@ -109,19 +129,40 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
         intent = "Pickup Inquiry"
         return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
 
-    # 9. Store Information
+    # 7. Store Information
     if re.search(r'\bhours\b', normalized) or \
        re.search(r'\bopen\b', normalized) or \
        re.search(r'\btimings\b', normalized) or \
        re.search(r'\baddress\b', normalized) or \
        re.search(r'\blocation\b', normalized) or \
        re.search(r'\bphone\b', normalized) or \
-       re.search(r'\bcontact\b', normalized):
+       re.search(r'\bcontact\b', normalized) or \
+       re.search(r'\blocated\b', normalized) or \
+       re.search(r'\bwhere\s+are\s+you\b', normalized) or \
+       re.search(r'\bstore\s+hours\b', normalized) or \
+       re.search(r'\bbusiness\s+hours\b', normalized) or \
+       re.search(r'\bopening\s+hours\b', normalized) or \
+       re.search(r'\bcontact\s+information\b', normalized) or \
+       re.search(r'\bcontact\s+info\b', normalized):
         intent = "Store Information"
         return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
 
+    # 8. Delivery Inquiry
+    if re.search(r'\bdelivery\b', normalized) or \
+       re.search(r'\bdeliver(y|s|ed|ing)?\b', normalized):
+        intent = "Delivery Inquiry"
+        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+
+    # 9. Menu Inquiry
+    if re.search(r'\b(menu|toppings?|prices?|costs?|dish(es)?|desserts?|drinks?|beverages?|sides|crusts?|ingredients?|gluten\s+free|gluten-free|veg(an)?|vegetarian|pepperoni|cheese|margherita|garlic\s+bread)\b', normalized) or \
+       re.search(r'\bpizzas?\b.*\b(price|cost|menu|topping|size|crust|option|offer|deal|slice)\b', normalized) or \
+       re.match(r'^pizzas?$', normalized) or \
+       re.search(r'\b(do\s+you\s+have|do\s+you\s+serve|what\s+is\s+on|ingredients\s+of)\s+pizzas?\b', normalized):
+        intent = "Menu Inquiry"
+        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+
     # 10. General Greeting
-    if re.match(r'^(hello|hi|hey|good\s+morning|good\s+afternoon|good\s+evening|yo)(\s+.*)?$', normalized):
+    if re.match(r'^(hello|hi|hey|good\s+morning|good\s+afternoon|good\s+evening|yo)[,\.!?]?(\s+.*)?$', normalized):
         words = normalized.split()
         if len(words) <= 3:
             intent = "General Greeting"
