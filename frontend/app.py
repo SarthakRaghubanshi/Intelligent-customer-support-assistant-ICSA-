@@ -57,11 +57,30 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+def render_escalation_banner(reason: str):
+    """Renders a simple, professional escalation notification banner."""
+    st.markdown(
+        f"""
+        <div class="escalation-banner">
+            <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                <span>⚠️</span> Support Team Notified
+            </div>
+            <div style="font-weight: 500; margin-bottom: 2px;">Reason: {reason}</div>
+            <div style="opacity: 0.7; font-size: 0.95em;">This conversation has been flagged for human review.</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 # Render Chat History
 # We loop through messages stored in session state and display them natively
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+        # Safe lookup for escalation metadata to ensure backward compatibility
+        escalation = message.get("escalation")
+        if message.get("role") == "assistant" and escalation and escalation.get("escalate"):
+            render_escalation_banner(escalation.get("reason"))
 
 # User Message Input Area
 if prompt := st.chat_input("Type your message here..."):
@@ -73,8 +92,12 @@ if prompt := st.chat_input("Type your message here..."):
         st.markdown(prompt)
         
     # 3. Call the Gemini service to generate a response (with full error handling)
+    escalation_data = {"escalate": False, "reason": "No Escalation Required"}
     try:
-        response_text = generate_response(prompt)
+        # Request full structured dictionary response including escalation metadata
+        response_data = generate_response(prompt, return_dict=True)
+        response_text = response_data["response"]
+        escalation_data = response_data["escalation"]
     except Exception as e:
         response_text = f"⚠️ **Error:** {str(e)}"
     
@@ -95,5 +118,13 @@ if prompt := st.chat_input("Type your message here..."):
         # Display the final complete response without cursor
         message_placeholder.markdown(full_response)
         
-    # 5. Save the assistant's response to session state
-    st.session_state.messages.append({"role": "assistant", "content": response_text})
+        # Immediately render escalation banner if triggered
+        if escalation_data.get("escalate"):
+            render_escalation_banner(escalation_data.get("reason"))
+        
+    # 5. Save the assistant's response to session state with escalation metadata
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": response_text,
+        "escalation": escalation_data
+    })
