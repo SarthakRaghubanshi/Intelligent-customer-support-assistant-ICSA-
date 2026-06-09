@@ -6,11 +6,13 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 
 # A. Add the following imports
+from typing import Dict, Any, Union
 from backend.rag.retriever import retrieve_relevant_chunks
 from backend.rag.prompt_builder import build_rag_prompt
 from backend.classifiers.intent_classifier import classify_intent
 from backend.analytics.event_logger import create_event
 from backend.analytics.session_analytics import update_session_analytics
+from backend.escalation.escalation_engine import EscalationEngine
 
 # B. Define a constant near the top of the file
 restaurant_id = "Restaurant_A"
@@ -28,7 +30,7 @@ load_dotenv(dotenv_path=env_path)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # C. Modify ONLY def generate_response(user_message: str) -> str
-def generate_response(user_message: str) -> str:
+def generate_response(user_message: str, return_dict: bool = False) -> Union[str, Dict[str, Any]]:
     """
     Sends a message to Google Gemini API grounded in the restaurant knowledge base,
     if similarity threshold check passes.
@@ -83,6 +85,21 @@ def generate_response(user_message: str) -> str:
             "code": "unknown",
             "confidence": 0.0,
             "layer": "Fallback"
+        }
+
+    # 1d. Run Escalation Evaluation
+    try:
+        escalation_engine = EscalationEngine()
+        escalation_result = escalation_engine.evaluate(
+            intent=intent_result["intent"],
+            sentiment=sentiment_result["sentiment"],
+            confidence=intent_result["confidence"],
+            query=user_message
+        )
+    except Exception as e:
+        escalation_result = {
+            "escalate": False,
+            "reason": "Escalation Evaluation Failed"
         }
 
     # 2. Handle Missing API Key
@@ -226,4 +243,13 @@ def generate_response(user_message: str) -> str:
         except Exception as e:
             print(f"Session analytics update failed: {str(e)}", file=sys.stderr)
 
+    if return_dict:
+        return {
+            "response": response_text,
+            "language": language_result,
+            "intent": intent_result["intent"],
+            "sentiment": sentiment_result["sentiment"],
+            "confidence": intent_result["confidence"],
+            "escalation": escalation_result
+        }
     return response_text
