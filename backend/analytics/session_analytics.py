@@ -8,6 +8,9 @@ _stats = {
     "language_distribution": {},
     "fallback_count": 0,
     "gemini_count": 0,
+    "escalation_count": 0,
+    "escalation_rate": 0.0,
+    "escalation_reason_distribution": {},
     
     # Internal accumulators for accurate running average calculations
     "_total_latency_ms": 0.0,
@@ -35,6 +38,8 @@ def update_session_analytics(event: Dict[str, Any]) -> Dict[str, Any]:
     response_source = event.get("response_source", "")
     latency_ms = event.get("latency_ms", 0.0)
     best_similarity_score = event.get("best_similarity_score", 1.0)
+    escalated = event.get("escalated", False)
+    escalation_reason = event.get("escalation_reason", "No Escalation Required")
 
     # 1. Update total queries count
     _stats["total_queries"] += 1
@@ -45,6 +50,11 @@ def update_session_analytics(event: Dict[str, Any]) -> Dict[str, Any]:
     # Update sentiment and language distributions
     _stats["sentiment_distribution"][sentiment] = _stats["sentiment_distribution"].get(sentiment, 0) + 1
     _stats["language_distribution"][language] = _stats["language_distribution"].get(language, 0) + 1
+
+    # Update escalation count and reason distribution
+    if escalated:
+        _stats["escalation_count"] += 1
+    _stats["escalation_reason_distribution"][escalation_reason] = _stats["escalation_reason_distribution"].get(escalation_reason, 0) + 1
 
     # 3. Update response counts
     if response_source == "Gemini":
@@ -58,6 +68,7 @@ def update_session_analytics(event: Dict[str, Any]) -> Dict[str, Any]:
 
     _stats["average_latency_ms"] = _stats["_total_latency_ms"] / _stats["total_queries"]
     _stats["average_similarity_score"] = _stats["_total_similarity_score"] / _stats["total_queries"]
+    _stats["escalation_rate"] = _stats["escalation_count"] / _stats["total_queries"]
 
     # 5. Print updated metrics
     print(f"\n=================== [SESSION_LOG] ===================")
@@ -69,6 +80,9 @@ def update_session_analytics(event: Dict[str, Any]) -> Dict[str, Any]:
     print(f"Gemini Count:             {_stats['gemini_count']}")
     print(f"Average Latency:          {_stats['average_latency_ms']:.2f} ms")
     print(f"Average Similarity Score: {_stats['average_similarity_score']:.4f}")
+    print(f"Escalation Count:         {_stats['escalation_count']}")
+    print(f"Escalation Rate:          {_stats['escalation_rate']:.4f}")
+    print(f"Escalation Reason Dist:   {_stats['escalation_reason_distribution']}")
     print(f"======================================================\n")
 
     return get_session_analytics()
@@ -90,6 +104,9 @@ def reset_session_analytics() -> None:
     _stats["language_distribution"] = {}
     _stats["fallback_count"] = 0
     _stats["gemini_count"] = 0
+    _stats["escalation_count"] = 0
+    _stats["escalation_rate"] = 0.0
+    _stats["escalation_reason_distribution"] = {}
     _stats["_total_latency_ms"] = 0.0
     _stats["_total_similarity_score"] = 0.0
     _stats["average_latency_ms"] = 0.0

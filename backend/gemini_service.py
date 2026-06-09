@@ -231,7 +231,9 @@ def generate_response(user_message: str, return_dict: bool = False) -> Union[str
             "retrieved_sources": retrieved_sources,
             "response_source": response_source,
             "response_length": len(response_text),
-            "latency_ms": latency_ms
+            "latency_ms": latency_ms,
+            "escalated": escalation_result["escalate"],
+            "escalation_reason": escalation_result["reason"]
         })
     except Exception as e:
         print(f"Analytics event creation failed: {str(e)}", file=sys.stderr)

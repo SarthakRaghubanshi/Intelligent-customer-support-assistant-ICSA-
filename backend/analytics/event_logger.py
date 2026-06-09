@@ -6,14 +6,14 @@ def create_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Creates and validates an AnalyticsEvent dictionary.
     Generates a unique turn UUID (event_id) internally.
-    Prints the completed 13-field event to stdout under the [EVENT_LOG] prefix.
+    Prints the completed 22-field event to stdout under the [EVENT_LOG] prefix.
     
     Args:
-        event_data (Dict[str, Any]): Dictionary containing 12 required fields
+        event_data (Dict[str, Any]): Dictionary containing 21 required fields
                                       (excluding event_id).
                                       
     Returns:
-        Dict[str, Any]: The fully validated 13-field event object.
+        Dict[str, Any]: The fully validated 22-field event object.
     """
     # 1. Generate unique event_id internally
     event_data["event_id"] = str(uuid.uuid4())
@@ -26,8 +26,10 @@ def create_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
     event_data.setdefault("language_code", "unknown")
     event_data.setdefault("language_confidence", 0.0)
     event_data.setdefault("language_layer", "Legacy")
+    event_data.setdefault("escalated", False)
+    event_data.setdefault("escalation_reason", "No Escalation Required")
 
-    # 2. Schema field validations for the 20 resulting fields
+    # 2. Schema field validations for the 22 resulting fields
     required_fields = {
         "event_id": str,
         "timestamp": str,
@@ -48,7 +50,9 @@ def create_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
         "retrieved_sources": list,
         "response_source": str,
         "response_length": int,
-        "latency_ms": float
+        "latency_ms": float,
+        "escalated": bool,
+        "escalation_reason": str
     }
 
     # Verify presence and type schema
@@ -89,6 +93,8 @@ def create_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
     print(f"Response Source:       {event_data['response_source']}")
     print(f"Response Length:       {event_data['response_length']} chars")
     print(f"Latency MS:            {event_data['latency_ms']:.2f} ms")
+    print(f"Escalated:             {event_data['escalated']}")
+    print(f"Escalation Reason:     {event_data['escalation_reason']}")
     print(f"=====================================================\n")
 
     return event_data
