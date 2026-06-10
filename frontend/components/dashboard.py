@@ -1,5 +1,6 @@
 import streamlit as st
 import textwrap
+import pandas as pd
 from backend.analytics.session_analytics import get_session_analytics
 
 def render_dashboard():
@@ -225,3 +226,55 @@ def render_dashboard():
             st.bar_chart(reason_dist)
         else:
             st.info("No escalation reasons recorded yet.")
+
+    st.markdown("<hr style='border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 2rem 0;'/>", unsafe_allow_html=True)
+
+    # 7. Trend Graphs Section
+    st.markdown("### 📈 Performance & Sentiment Trends Over Time")
+    if recent_events:
+        df = pd.DataFrame(recent_events)
+        df['Time'] = pd.to_datetime(df['timestamp']).dt.strftime('%H:%M:%S')
+
+        trend_col1, trend_col2 = st.columns(2)
+        with trend_col1:
+            st.markdown("#### Query Volume & Escalation Trend")
+            volume_df = pd.DataFrame({
+                'Time': df['Time'],
+                'Total Queries': range(1, len(df) + 1),
+                'Escalations': df['escalated'].astype(int).cumsum()
+            }).set_index('Time')
+            st.line_chart(volume_df)
+
+            st.markdown("#### Sentiment Score Trend")
+            sentiment_map = {'Positive': 1, 'Neutral': 0, 'Negative': -1}
+            sentiment_df = pd.DataFrame({
+                'Time': df['Time'],
+                'Sentiment Score': df['sentiment'].map(sentiment_map).fillna(0)
+            }).set_index('Time')
+            st.line_chart(sentiment_df)
+
+        with trend_col2:
+            st.markdown("#### Intent Confidence Trend")
+            confidence_df = df[['Time', 'intent_confidence']].rename(
+                columns={'intent_confidence': 'Confidence Score'}
+            ).set_index('Time')
+            st.line_chart(confidence_df)
+
+            # Extra info block for portfolio completeness
+            st.markdown(
+                textwrap.dedent(
+                    """
+                    <div style='background-color: rgba(30, 41, 59, 0.2); padding: 1.2rem; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.03); margin-top: 1.5rem;'>
+                        <h5 style='margin-top: 0; color: #F8FAFC;'>💡 Time-Series Analysis</h5>
+                        <p style='font-size: 0.8rem; color: rgba(248, 250, 252, 0.6); line-height: 1.5; margin: 0;'>
+                            These trend charts illustrate support performance and client sentiment patterns chronologically. 
+                            Use the <strong>Sentiment Score Trend</strong> to map immediate customer satisfaction changes (ranging from 1 to -1). 
+                            Observe the <strong>Confidence Trend</strong> to detect vocabulary coverage drift.
+                        </p>
+                    </div>
+                    """
+                ),
+                unsafe_allow_html=True
+            )
+    else:
+        st.info("Awaiting traffic to generate trend charts.")
