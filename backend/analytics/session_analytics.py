@@ -11,10 +11,13 @@ _stats = {
     "escalation_count": 0,
     "escalation_rate": 0.0,
     "escalation_reason_distribution": {},
+    "recent_events": [],
+    "average_confidence_score": 0.0,
     
     # Internal accumulators for accurate running average calculations
     "_total_latency_ms": 0.0,
     "_total_similarity_score": 0.0,
+    "_total_intent_confidence": 0.0,
     
     "average_latency_ms": 0.0,
     "average_similarity_score": 0.0
@@ -65,10 +68,19 @@ def update_session_analytics(event: Dict[str, Any]) -> Dict[str, Any]:
     # 4. Update running averages using internal accumulators
     _stats["_total_latency_ms"] += float(latency_ms)
     _stats["_total_similarity_score"] += float(best_similarity_score)
+    _stats["_total_intent_confidence"] = _stats.get("_total_intent_confidence", 0.0) + float(event.get("intent_confidence", 0.0))
 
     _stats["average_latency_ms"] = _stats["_total_latency_ms"] / _stats["total_queries"]
     _stats["average_similarity_score"] = _stats["_total_similarity_score"] / _stats["total_queries"]
+    _stats["average_confidence_score"] = _stats["_total_intent_confidence"] / _stats["total_queries"]
     _stats["escalation_rate"] = _stats["escalation_count"] / _stats["total_queries"]
+
+    # Update recent events list (max 100)
+    if "recent_events" not in _stats:
+        _stats["recent_events"] = []
+    _stats["recent_events"].append(event)
+    if len(_stats["recent_events"]) > 100:
+        _stats["recent_events"] = _stats["recent_events"][-100:]
 
     # 5. Print updated metrics
     print(f"\n=================== [SESSION_LOG] ===================")
@@ -80,6 +92,7 @@ def update_session_analytics(event: Dict[str, Any]) -> Dict[str, Any]:
     print(f"Gemini Count:             {_stats['gemini_count']}")
     print(f"Average Latency:          {_stats['average_latency_ms']:.2f} ms")
     print(f"Average Similarity Score: {_stats['average_similarity_score']:.4f}")
+    print(f"Average Confidence:       {_stats['average_confidence_score']:.4f}")
     print(f"Escalation Count:         {_stats['escalation_count']}")
     print(f"Escalation Rate:          {_stats['escalation_rate']:.4f}")
     print(f"Escalation Reason Dist:   {_stats['escalation_reason_distribution']}")
@@ -107,7 +120,10 @@ def reset_session_analytics() -> None:
     _stats["escalation_count"] = 0
     _stats["escalation_rate"] = 0.0
     _stats["escalation_reason_distribution"] = {}
+    _stats["recent_events"] = []
+    _stats["average_confidence_score"] = 0.0
     _stats["_total_latency_ms"] = 0.0
     _stats["_total_similarity_score"] = 0.0
+    _stats["_total_intent_confidence"] = 0.0
     _stats["average_latency_ms"] = 0.0
     _stats["average_similarity_score"] = 0.0
