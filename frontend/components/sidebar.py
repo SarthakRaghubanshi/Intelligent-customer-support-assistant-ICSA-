@@ -27,6 +27,16 @@ def render_sidebar():
             unsafe_allow_html=True
         )
         
+        # Navigation controls using Streamlit automatic state binding
+        st.markdown("### 🧭 Navigation")
+        st.selectbox(
+            "Go to Page:",
+            options=["💬 Chat Assistant", "📊 Analytics Dashboard"],
+            key="active_view"
+        )
+        
+        st.markdown("<br/>", unsafe_allow_html=True)
+        
         # Restaurant Context Configurator
         st.markdown("### 🍔 Context Settings")
         restaurant_options = ["All Restaurants", "Burgers & Co", "Pizzeria d'Italia", "Sushi Zen", "Taco Fiesta"]
