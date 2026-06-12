@@ -14,7 +14,9 @@ if root_dir not in sys.path:
 from backend.rag.retriever import retrieve_relevant_chunks
 
 TENANT_MAP = {
-    "Restaurant_A": "Pizza Paradise"
+    "Restaurant_A": "Pizza Paradise",
+    "Restaurant_B": "Burgers & Co",
+    "Restaurant_C": "Sushi Zen"
 }
 
 def build_rag_prompt(

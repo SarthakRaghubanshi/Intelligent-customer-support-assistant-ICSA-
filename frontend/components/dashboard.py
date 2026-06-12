@@ -6,7 +6,7 @@ from backend.analytics.session_analytics import get_session_analytics
 def render_dashboard():
     """Renders the operations and customer support analytics dashboard with business insights."""
     # Retrieve current session statistics
-    stats = get_session_analytics()
+    stats = get_session_analytics(st.session_state.selected_restaurant)
     total = stats.get("total_queries", 0)
     recent_events = stats.get("recent_events", [])
 
