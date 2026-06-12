@@ -1,0 +1,34 @@
+=========================================
+BUSINESS RULES & PROTOCOLS: SUSHI ZEN
+=========================================
+
+1. ORDER MODIFICATION RULES
+---------------------------
+* Adding, Removing, or Changing Items:
+  - Changes to ingredients, rice substitutions, or removing items can only be made within 3 minutes of order placement.
+  - After 3 minutes, the order is locked for prep, and modifications cannot be accommodated due to immediate seafood processing.
+* Changing Order Type (Pickup to Delivery / Delivery to Pickup):
+  - Allowed up to 5 minutes after order placement, provided the customer's address is within our 12.0-kilometer delivery radius. The customer must pay the applicable delivery fee.
+
+2. PAYMENT RULES
+----------------
+* Accepted Payment Methods:
+  - Online Payments: Visa, Mastercard, American Express, Net Banking, UPI (Paytm, Google Pay, PhonePe), Apple Pay.
+  - In-Store Payments: Cash, Debit Cards, Gift Cards.
+  - Cash on Delivery (COD): Sushi Zen does NOT accept Cash on Delivery (COD) for security and ingredient cost reasons. All orders must be prepaid online.
+* Taxes and Fees:
+  - All orders are subject to local state sales tax (8.25%). A packaging fee of ₹30 is applied to all take-out and delivery orders to cover insulated thermal boxes and gel/ice packs.
+
+3. SPECIAL RESTRICTIONS & POLICIES
+----------------------------------
+* Age-Restricted Items:
+  - Sushi Zen does not serve alcoholic beverages for delivery or pickup.
+* Dietary Cross-Contamination Warning:
+  - While we offer gluten-free soy sauce and vegetarian/vegan sushi options, our kitchen handles raw fish and soy. We cannot guarantee 100% trace-free environment.
+* Large Group / Catering Orders:
+  - Orders containing 15 or more items, or exceeding a total subtotal of ₹5000, are classified as "Catering Orders".
+  - Catering orders must be placed at least 6 hours in advance.
+  - A 15% service gratuity fee is added to all catering orders to support our kitchen staff.
+* Discount Codes and Promotions:
+  - Only one discount code or promotional coupon can be applied per order. Coupons cannot be stacked.
+  - Promotions do not apply to catering orders or custom sushi modifiers.

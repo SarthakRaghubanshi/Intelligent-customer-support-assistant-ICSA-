@@ -1,0 +1,33 @@
+=========================================
+RESTAURANT PROFILE: BURGERS & CO
+=========================================
+
+General Information:
+--------------------
+Restaurant Name: Burgers & Co
+Concept: Gourmet Burgers & Craft Fries
+Cuisine: Contemporary American, Gourmet Smash Burgers, Hand-Cut Fries, and Shakes
+Tagline: "Smashed to Perfection, Crafted for Flavor"
+Address: Plot 44, Block C, Sector 62, Noida, Uttar Pradesh 201309, India
+Main Phone: +91 120 4955500
+Order Support Line: +91 98765 55555
+General Email: hello@burgersandco.com
+Customer Support Email: support@burgersandco.com
+Website: https://www.burgersandco.com
+
+Brand & Quality Promise:
+------------------------
+At Burgers & Co, we believe a great burger starts with superior ingredients. Our signature patties are made from 100% fresh, never-frozen ground beef, smashed on a 450°F flat-top grill to create a beautiful caramelized lace crust while locking in the juices. We bake our soft brioche buns daily, and all sauces are house-made from secret family recipes. We maintain a separate grill section and clean utensils for cooking our vegan/plant-based patties to ensure strict separation for our vegetarian and vegan customers.
+
+Operating Hours:
+----------------
+* Monday:    12:00 PM - 11:00 PM
+* Tuesday:   12:00 PM - 11:00 PM
+* Wednesday: 12:00 PM - 11:00 PM
+* Thursday:  12:00 PM - 11:00 PM
+* Friday:    12:00 PM - 01:00 AM
+* Saturday:  12:00 PM - 01:00 AM
+* Sunday:    12:00 PM - 10:00 PM
+
+*Kitchen closes 30 minutes prior to restaurant closing.*
+*Late-night delivery available until closing on Friday and Saturday.*

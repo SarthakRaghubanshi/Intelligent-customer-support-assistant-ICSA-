@@ -1,0 +1,33 @@
+=========================================
+MODIFIERS & CUSTOMIZATION: BURGERS & CO
+=========================================
+
+1. BUN OPTIONS
+--------------
+Customers can select the following bun types for any signature burger:
+* Brioche Bun (Default, sweet and buttery)
+  - Price: Included in burger price.
+* Gluten-Free Bun
+  - Price: +₹49
+* Lettuce Wrap (Low carb, wrapped in fresh iceberg lettuce leaves)
+  - Price: Included in burger price.
+
+2. CHEESE & SAUCE OPTIONS
+-------------------------
+* Extra Cheese Slice (American Cheddar / Swiss / Pepper Jack)
+  - Price: +₹39 per slice
+* Vegan Cheddar Cheese Substitution
+  - Price: +₹49
+* Extra Sauce Dip (BBQ, Truffle Aioli, Spicy Mayo, Burger Sauce)
+  - Price: +₹19 per dip
+
+3. ADD-ON TOPPINGS
+------------------
+Toppings can be added to customize any burger:
+* Crispy Bacon Bits: +₹59
+* Sautéed Mushrooms: +₹49
+* Sautéed Onions: +₹29
+* Jalapeño Slices: +₹29
+* Extra Avocado Slices: +₹69
+* Fried Egg: +₹39
+* Extra Smashed Beef Patty: +₹99

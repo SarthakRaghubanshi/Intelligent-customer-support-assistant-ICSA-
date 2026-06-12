@@ -1,0 +1,37 @@
+=========================================
+BUSINESS RULES & PROTOCOLS: BURGERS & CO
+=========================================
+
+1. ORDER MODIFICATION RULES
+---------------------------
+* Adding Items:
+  - Items can be added to an order at any time before the order enters the "On Grill" stage. Additional charges will apply, and payment must be processed immediately.
+* Removing or Changing Items:
+  - Changes to toppings, bun options, or removing items can only be made within 10 minutes of order placement.
+  - After 10 minutes, the order is locked for prep, and modifications cannot be accommodated.
+* Changing Order Type (Pickup to Delivery / Delivery to Pickup):
+  - Changing from Pickup to Delivery: Allowed up to 15 minutes after order placement, provided the customer's address is within our 8.0-kilometer delivery radius. The customer must pay the applicable delivery fee.
+  - Changing from Delivery to Pickup: Allowed up to 15 minutes after order placement. The delivery fee will be refunded to the customer as store credit.
+
+2. PAYMENT RULES
+----------------
+* Accepted Payment Methods:
+  - Online Payments: Visa, Mastercard, American Express, Discover, Apple Pay, Google Pay.
+  - In-Store Payments: Cash, Debit Cards, Gift Cards.
+  - Cash on Delivery (COD): Accepted for orders under ₹2000. Our drivers carry a maximum of ₹500 in change. Orders exceeding ₹2000 must be prepaid online.
+* Credit Card Verification:
+  - For online orders exceeding ₹2500, the physical card and a matching government-issued photo ID must be presented upon pickup or delivery.
+* Taxes and Fees:
+  - All orders are subject to local state sales tax (8.25%). A standard packaging fee of ₹20 is applied to all take-out and delivery orders to cover eco-friendly burger boxes and bags.
+
+3. SPECIAL RESTRICTIONS & POLICIES
+----------------------------------
+* Dietary Cross-Contamination Warning:
+  - While we offer gluten-free buns and plant-based vegan cheese prepared in a separate workspace with designated clean utensils, our kitchen is a high-gluten environment. We cannot guarantee 100% trace-free environment for customers with severe Celiac disease.
+* Large Group / Catering Orders:
+  - Orders containing 10 or more burgers, or exceeding a total subtotal of ₹4000, are classified as "Catering Orders".
+  - Catering orders must be placed at least 2 hours in advance.
+  - A 10% auto-gratuity fee is added to all catering orders to support our kitchen staff.
+* Discount Codes and Promotions:
+  - Only one discount code or promotional coupon can be applied per order. Coupons cannot be stacked.
+  - Promotions do not apply to catering orders or custom burger modifiers.

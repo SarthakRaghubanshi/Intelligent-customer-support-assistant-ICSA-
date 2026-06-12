@@ -1,0 +1,43 @@
+=========================================
+DELIVERY SETTINGS: SUSHI ZEN
+=========================================
+
+1. DELIVERY RADIUS & ZONES
+--------------------------
+Sushi Zen operates its own specialized climate-controlled delivery fleet. To ensure raw fish freshness, we deliver up to a maximum radius of 12.0 kilometers from our kitchen at Plot 88, Sector 15, Noida. The delivery area is divided into three zones:
+
+* Zone 1 (Near): Up to 4.0 kilometers radius
+* Zone 2 (Mid): 4.1 to 8.0 kilometers radius
+* Zone 3 (Far): 8.1 to 12.0 kilometers radius
+
+*Deliveries requested outside the 12.0-kilometer radius are strictly rejected to ensure seafood safety and quality control.*
+
+2. DELIVERY CHARGES
+-------------------
+Delivery charges are structured by zone to cover driver fuel, climate-controlled packaging, and dry ice:
+* Zone 1 (0.0 - 4.0 km):
+  - Delivery Fee: ₹129
+  - Free Delivery: For orders over ₹999 (subtotal before taxes and fees)
+* Zone 2 (4.1 - 8.0 km):
+  - Delivery Fee: ₹179
+  - Free Delivery: For orders over ₹1499 (subtotal before taxes and fees)
+* Zone 3 (8.1 - 12.0 km):
+  - Delivery Fee: ₹229
+  - Free Delivery: For orders over ₹1999 (subtotal before taxes and fees)
+
+*Minimum Order Subtotal for Delivery: ₹400 (excluding taxes and delivery fee).*
+
+3. ESTIMATED DELIVERY TIMES (EDT)
+---------------------------------
+Delivery times vary depending on order volume, traffic, weather, and distance:
+* Zone 1 (0.0 - 4.0 km):
+  - Standard Hours: 30 - 40 minutes
+  - Peak Hours (Fri-Sat, 6:00 PM - 9:30 PM): 45 - 55 minutes
+* Zone 2 (4.1 - 8.0 km):
+  - Standard Hours: 40 - 50 minutes
+  - Peak Hours (Fri-Sat, 6:00 PM - 9:30 PM): 55 - 65 minutes
+* Zone 3 (8.1 - 12.0 km):
+  - Standard Hours: 50 - 60 minutes
+  - Peak Hours (Fri-Sat, 6:00 PM - 9:30 PM): 65 - 75 minutes
+
+*Weather Advisory: During heavy rain or extreme weather, add an additional 15 minutes to all zones for driver safety.*

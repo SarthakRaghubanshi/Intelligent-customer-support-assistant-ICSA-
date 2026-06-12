@@ -13,9 +13,14 @@ if root_dir not in sys.path:
 
 from backend.rag.retriever import retrieve_relevant_chunks
 
+TENANT_MAP = {
+    "Restaurant_A": "Pizza Paradise"
+}
+
 def build_rag_prompt(
     query: str,
     retrieved_chunks: List[Dict[str, Any]],
+    restaurant_id: str = "Restaurant_A",
     metadata: Optional[Dict[str, Any]] = None
 ) -> str:
     """
@@ -26,6 +31,7 @@ def build_rag_prompt(
         query (str): The customer's original query.
         retrieved_chunks (List[Dict[str, Any]]): List of chunk dictionaries containing
                                                  'content', 'source', and 'restaurant_id'.
+        restaurant_id (str): The unique identifier of the restaurant.
         metadata (Optional[Dict[str, Any]]): Optional dictionary containing 'intent' and 'sentiment'.
                                                  
     Returns:
@@ -36,9 +42,12 @@ def build_rag_prompt(
     language = metadata.get("language") if metadata else None
     language_code = metadata.get("language_code") if metadata else None
 
+    # Resolve brand name from mapping
+    brand_name = TENANT_MAP.get(restaurant_id, "Pizza Paradise")
+
     # Header instructions
     system_instructions = (
-        "You are a helpful customer support assistant for Pizza Paradise.\n\n"
+        f"You are a helpful customer support assistant for {brand_name}.\n\n"
         "Use ONLY the provided context to answer the user's question.\n\n"
         "If the answer cannot be found in the context, reply:\n\n"
         '"I could not find that information in the restaurant knowledge base."'
@@ -101,7 +110,7 @@ if __name__ == "__main__":
         chunks = retrieve_relevant_chunks(test_query, test_restaurant_id, k=5)
         
         # 3. Pass retrieved chunks to build_rag_prompt
-        final_prompt = build_rag_prompt(test_query, chunks)
+        final_prompt = build_rag_prompt(test_query, chunks, restaurant_id=test_restaurant_id)
         
         # 4. Print the complete generated prompt
         print("\n=== GENERATED PROMPT ===")

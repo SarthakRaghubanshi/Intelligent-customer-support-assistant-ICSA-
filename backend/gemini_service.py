@@ -13,10 +13,6 @@ from backend.classifiers.intent_classifier import classify_intent
 from backend.analytics.event_logger import create_event
 from backend.analytics.session_analytics import update_session_analytics
 from backend.escalation.escalation_engine import EscalationEngine
-
-# B. Define a constant near the top of the file
-restaurant_id = "Restaurant_A"
-
 # Locate and load the .env file from the project root folder.
 # This ensures it resolves correctly regardless of whether the app is run from root or frontend/
 backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -30,7 +26,7 @@ load_dotenv(dotenv_path=env_path)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # C. Modify ONLY def generate_response(user_message: str) -> str
-def generate_response(user_message: str, return_dict: bool = False) -> Union[str, Dict[str, Any]]:
+def generate_response(user_message: str, restaurant_id: str = "Restaurant_A", return_dict: bool = False) -> Union[str, Dict[str, Any]]:
     """
     Sends a message to Google Gemini API grounded in the restaurant knowledge base,
     if similarity threshold check passes.
@@ -164,7 +160,7 @@ def generate_response(user_message: str, return_dict: bool = False) -> Union[str
             "language": language_result["language"],
             "language_code": language_result["code"]
         }
-        grounded_prompt = build_rag_prompt(user_message, relevant_chunks, metadata=metadata)
+        grounded_prompt = build_rag_prompt(user_message, relevant_chunks, restaurant_id=restaurant_id, metadata=metadata)
 
         # Print the exact grounded prompt string before Gemini is called
         print(f"\n=================== [GROUNDED_PROMPT] ===================")

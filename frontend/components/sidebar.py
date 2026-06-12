@@ -39,14 +39,14 @@ def render_sidebar():
         
         # Restaurant Context Configurator
         st.markdown("### 🍔 Context Settings")
-        restaurant_options = ["All Restaurants", "Burgers & Co", "Pizzeria d'Italia", "Sushi Zen", "Taco Fiesta"]
+        restaurant_options = ["Restaurant_A", "Restaurant_B", "Restaurant_C"]
         
         # Update session state based on select box
         st.session_state.selected_restaurant = st.selectbox(
             "Active Restaurant Context:",
             options=restaurant_options,
             index=restaurant_options.index(st.session_state.selected_restaurant),
-            help="Sets the context for restaurant-specific menus or policies (mocked for Phase 1)."
+            help="Sets the active restaurant context for support queries and analytics."
         )
         
         st.markdown("<br/>", unsafe_allow_html=True)

@@ -1,0 +1,31 @@
+=========================================
+MODIFIERS & CUSTOMIZATION: SUSHI ZEN
+=========================================
+
+1. RICE OPTIONS
+---------------
+Customers can select the following rice types for any roll:
+* Seasoned White Sushi Rice (Default)
+  - Price: Included in roll price.
+* Organic Brown Sushi Rice
+  - Price: +₹59 per roll.
+* Cucumber Wrap (Naruto style, roll wrapped in thin sliced cucumber, rice-free)
+  - Price: +₹99 per roll.
+
+2. SAUCES & ALLERGEN REPLACEMENTS
+---------------------------------
+* Gluten-Free Tamari Soy Sauce Substitution
+  - Price: +₹49
+* Extra Sauce Dip (Spicy Mayo, Eel Sauce, Wasabi Aioli, Ponzu)
+  - Price: +₹29 per dip
+* Extra Fresh Wasabi / Pickled Ginger Portion
+  - Price: +₹29
+
+3. ROLL ADD-ONS
+---------------
+Toppings can be added to customize rolls:
+* Extra Salmon Slice: +₹99
+* Sliced Avocado on Top: +₹59
+* Spicy Crunch (Tempura flakes): +₹19
+* Cream Cheese Addition: +₹39
+* Jalapeno Slices: +₹29

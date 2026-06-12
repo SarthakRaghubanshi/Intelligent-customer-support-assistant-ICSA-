@@ -11,9 +11,9 @@ def init_session_state():
             }
         ]
     
-    # Initialize active restaurant context (mocking multi-restaurant system)
+    # Initialize active restaurant context
     if "selected_restaurant" not in st.session_state:
-        st.session_state.selected_restaurant = "All Restaurants"
+        st.session_state.selected_restaurant = "Restaurant_A"
         
     # Initialize response typing speed setting
     if "typing_speed" not in st.session_state:

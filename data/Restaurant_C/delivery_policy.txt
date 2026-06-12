@@ -1,0 +1,24 @@
+=========================================
+DELIVERY POLICY: SUSHI ZEN
+=========================================
+
+1. SERVICES & BOUNDARIES
+------------------------
+* Sushi Zen provides climate-controlled internal delivery service within a 12.0-kilometer radius of our kitchen at Plot 88, Sector 15, Noida.
+* Address Verification:
+  - Address lookup is automated in our app and website.
+  - Deliveries requested outside our boundary will be blocked.
+
+2. ORDER WAITING LIMITS & RE-DELIVERY
+--------------------------------------
+* Driver Waiting Limit:
+  - When the driver arrives at the customer's location, they will attempt to contact the customer via call/text. The driver is authorized to wait for a maximum of 5 minutes due to temp sensitivity.
+  - If the customer does not respond within 5 minutes, the driver will return the order to the restaurant.
+* Re-delivery/Restocking Fee:
+  - Unclaimed returned orders will incur a 100% food wastage fee. Raw seafood returned from transit cannot be resold or re-delivered.
+  - Re-delivery requests will require a new order and full payment.
+
+3. WEATHER & PEAK-HOUR SAFETY
+------------------------------
+* We prioritize driver safety. In cases of torrential rain or waterlogging, delivery times may be extended.
+* Customers will receive SMS updates if delays exceed 10 minutes past the estimated delivery time.

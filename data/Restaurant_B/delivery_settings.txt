@@ -1,0 +1,43 @@
+=========================================
+DELIVERY SETTINGS: BURGERS & CO
+=========================================
+
+1. DELIVERY RADIUS & ZONES
+--------------------------
+Burgers & Co operates a dedicated internal delivery fleet. We deliver up to a maximum radius of 8.0 kilometers from our kitchen at Plot 44, Block C, Sector 62, Noida. The delivery area is divided into three zones:
+
+* Zone 1 (Near): Up to 2.5 kilometers radius
+* Zone 2 (Mid): 2.6 to 5.0 kilometers radius
+* Zone 3 (Far): 5.1 to 8.0 kilometers radius
+
+*Deliveries requested outside the 8.0-kilometer radius are not accepted by our internal fleet but may be ordered via partner platforms (e.g., Zomato, Swiggy) if within their respective service boundaries.*
+
+2. DELIVERY CHARGES
+-------------------
+Delivery charges are structured by zone to cover driver fuel and maintenance:
+* Zone 1 (0.0 - 2.5 km):
+  - Delivery Fee: ₹79
+  - Free Delivery: For orders over ₹599 (subtotal before taxes and fees)
+* Zone 2 (2.6 - 5.0 km):
+  - Delivery Fee: ₹119
+  - Free Delivery: For orders over ₹899 (subtotal before taxes and fees)
+* Zone 3 (5.1 - 8.0 km):
+  - Delivery Fee: ₹159
+  - Free Delivery: For orders over ₹1299 (subtotal before taxes and fees)
+
+*Minimum Order Subtotal for Delivery: ₹200 (excluding taxes and delivery fee).*
+
+3. ESTIMATED DELIVERY TIMES (EDT)
+---------------------------------
+Delivery times vary depending on order volume, traffic, weather, and distance:
+* Zone 1 (0.0 - 2.5 km):
+  - Standard Hours: 20 - 30 minutes
+  - Peak Hours (Fri-Sat, 6:00 PM - 9:00 PM): 35 - 45 minutes
+* Zone 2 (2.6 - 5.0 km):
+  - Standard Hours: 30 - 40 minutes
+  - Peak Hours (Fri-Sat, 6:00 PM - 9:00 PM): 45 - 55 minutes
+* Zone 3 (5.1 - 8.0 km):
+  - Standard Hours: 40 - 50 minutes
+  - Peak Hours (Fri-Sat, 6:00 PM - 9:00 PM): 55 - 65 minutes
+
+*Weather Advisory: During heavy rain or extreme weather, add an additional 15 minutes to all zones for driver safety.*

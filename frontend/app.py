@@ -100,7 +100,11 @@ if active_view == "💬 Chat Assistant":
         escalation_data = {"escalate": False, "reason": "No Escalation Required"}
         try:
             # Request full structured dictionary response including escalation metadata
-            response_data = generate_response(prompt, return_dict=True)
+            response_data = generate_response(
+                prompt,
+                restaurant_id=st.session_state.selected_restaurant,
+                return_dict=True
+            )
             response_text = response_data["response"]
             escalation_data = response_data["escalation"]
         except Exception as e:
