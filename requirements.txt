@@ -7,3 +7,6 @@ pypdf
 pandas
 numpy
 scikit-learn
+SQLAlchemy>=2.0.0
+bcrypt>=4.0.0
+alembic>=1.12.0
