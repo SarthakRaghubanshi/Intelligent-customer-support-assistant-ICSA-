@@ -1,7 +1,7 @@
 import streamlit as st
 import textwrap
 import pandas as pd
-from backend.analytics.session_analytics import get_session_analytics
+from backend.analytics.session_analytics import get_session_analytics, get_all_tenant_analytics
 
 def render_dashboard():
     """Renders the operations and customer support analytics dashboard with business insights."""
@@ -114,6 +114,44 @@ def render_dashboard():
         st.info("Awaiting traffic to generate business insights and session metrics.")
 
     st.markdown("<hr style='border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 2rem 0;'/>", unsafe_allow_html=True)
+
+    # 3.5. Tenant Comparison Section (Visible only when 'All Restaurants' is selected)
+    if selected == "All Restaurants":
+        st.markdown("### 🏢 Admin Tenant Comparison")
+        all_tenant_stats = get_all_tenant_analytics()
+        if all_tenant_stats:
+            comparison_rows = []
+            volume_data = {}
+            escalation_data = {}
+            
+            # Sort tenants by name to ensure consistent UI rendering
+            for tenant_id in sorted(all_tenant_stats.keys()):
+                t_stats = all_tenant_stats[tenant_id]
+                comparison_rows.append({
+                    "Tenant": tenant_id,
+                    "Total Queries": t_stats.get("total_queries", 0),
+                    "Escalation Rate": f"{t_stats.get('escalation_rate', 0.0) * 100:.1f}%",
+                    "Avg Latency (ms)": f"{t_stats.get('average_latency_ms', 0.0):.1f}",
+                    "Avg Confidence": f"{t_stats.get('average_confidence_score', 0.0):.4f}",
+                    "Avg Similarity": f"{t_stats.get('average_similarity_score', 0.0):.4f}"
+                })
+                volume_data[tenant_id] = t_stats.get("total_queries", 0)
+                escalation_data[tenant_id] = t_stats.get("escalation_count", 0)
+            
+            df_comparison = pd.DataFrame(comparison_rows)
+            st.dataframe(df_comparison, use_container_width=True, hide_index=True)
+            
+            comp_col1, comp_col2 = st.columns(2)
+            with comp_col1:
+                st.markdown("#### Query Volume by Tenant")
+                st.bar_chart(pd.Series(volume_data))
+            with comp_col2:
+                st.markdown("#### Escalation Count by Tenant")
+                st.bar_chart(pd.Series(escalation_data))
+        else:
+            st.info("No active tenant analytics available yet for comparison.")
+            
+        st.markdown("<hr style='border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 2rem 0;'/>", unsafe_allow_html=True)
 
     # 4. Most Common Questions and Complaints Section (2 columns)
     st.markdown("### 🔍 Frequency Analysis & Report")

@@ -174,6 +174,17 @@ def get_session_analytics(restaurant_id: Optional[str] = None) -> Dict[str, Any]
         tenant_stats = _get_tenant_stats(restaurant_id)
         return {k: (dict(v) if isinstance(v, dict) else v) for k, v in tenant_stats.items() if not k.startswith("_")}
 
+def get_all_tenant_analytics() -> Dict[str, Dict[str, Any]]:
+    """
+    Returns a copy of the analytics for all active tenants,
+    filtering out internal accumulator fields.
+    """
+    return {
+        r_id: {k: (dict(v) if isinstance(v, dict) else v) 
+               for k, v in tenant_stats.items() if not k.startswith("_")}
+        for r_id, tenant_stats in _stats.items()
+    }
+
 def reset_session_analytics(restaurant_id: Optional[str] = None) -> None:
     """
     Resets all metrics and accumulators back to default for a specific restaurant or all.
