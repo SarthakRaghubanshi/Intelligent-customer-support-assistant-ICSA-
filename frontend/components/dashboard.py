@@ -115,41 +115,118 @@ def render_dashboard():
 
     st.markdown("<hr style='border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 2rem 0;'/>", unsafe_allow_html=True)
 
-    # 3.5. Tenant Comparison Section (Visible only when 'All Restaurants' is selected)
+    # 3.5. Operations Intelligence Section (Visible only when 'All Restaurants' is selected)
     if selected == "All Restaurants":
-        st.markdown("### 🏢 Admin Tenant Comparison")
+        st.markdown("# Operations Intelligence")
+        
         all_tenant_stats = get_all_tenant_analytics()
-        if all_tenant_stats:
-            comparison_rows = []
-            volume_data = {}
-            escalation_data = {}
+        active_tenants = [tid for tid in all_tenant_stats.keys() if all_tenant_stats[tid].get("total_queries", 0) > 0]
+        
+        if all_tenant_stats and active_tenants:
+            # Ranking Calculation
+            # Sort priorities:
+            # 1. Lowest escalation rate
+            # 2. Highest confidence score
+            # 3. Highest query volume
+            ranked_tenants = sorted(
+                active_tenants,
+                key=lambda tid: (
+                    all_tenant_stats[tid].get("escalation_rate", 0.0),
+                    -all_tenant_stats[tid].get("average_confidence_score", 0.0),
+                    -all_tenant_stats[tid].get("total_queries", 0)
+                )
+            )
             
-            # Sort tenants by name to ensure consistent UI rendering
-            for tenant_id in sorted(all_tenant_stats.keys()):
+            # A. Top Performing Restaurant
+            top_performer = ranked_tenants[0]
+            top_stats = all_tenant_stats[top_performer]
+            
+            # B. Highest Traffic Restaurant
+            traffic_leader = max(active_tenants, key=lambda tid: all_tenant_stats[tid].get("total_queries", 0))
+            traffic_stats = all_tenant_stats[traffic_leader]
+            
+            # C. Most Escalated Restaurant
+            escalation_leader = max(active_tenants, key=lambda tid: all_tenant_stats[tid].get("escalation_count", 0))
+            escalation_stats = all_tenant_stats[escalation_leader]
+            
+            # D. Fastest Restaurant
+            fastest_restaurant = min(active_tenants, key=lambda tid: all_tenant_stats[tid].get("average_latency_ms", 0.0))
+            fastest_stats = all_tenant_stats[fastest_restaurant]
+            
+            # Display KPIs
+            kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
+            with kpi_col1:
+                st.metric(
+                    label="🏆 Top Performer",
+                    value=top_performer,
+                    help="Lowest escalation rate & highest confidence score",
+                    delta=f"Conf: {top_stats.get('average_confidence_score', 0.0):.3f} / Esc: {top_stats.get('escalation_rate', 0.0)*100:.1f}%",
+                    delta_color="off"
+                )
+            with kpi_col2:
+                st.metric(
+                    label="🚦 Traffic Leader",
+                    value=traffic_leader,
+                    delta=f"{traffic_stats.get('total_queries', 0)} queries"
+                )
+            with kpi_col3:
+                st.metric(
+                    label="🚨 Most Escalated",
+                    value=escalation_leader,
+                    delta=f"{escalation_stats.get('escalation_count', 0)} escalations ({escalation_stats.get('escalation_rate', 0.0)*100:.1f}%)"
+                )
+            with kpi_col4:
+                st.metric(
+                    label="⚡ Fastest Response",
+                    value=fastest_restaurant,
+                    delta=f"{fastest_stats.get('average_latency_ms', 0.0):.1f} ms"
+                )
+                
+            st.markdown("<br/>", unsafe_allow_html=True)
+            
+            # Tenant Ranking Table
+            st.markdown("### 🏆 Tenant Performance Rankings")
+            ranking_rows = []
+            for rank, tenant_id in enumerate(ranked_tenants, 1):
                 t_stats = all_tenant_stats[tenant_id]
-                comparison_rows.append({
-                    "Tenant": tenant_id,
-                    "Total Queries": t_stats.get("total_queries", 0),
-                    "Escalation Rate": f"{t_stats.get('escalation_rate', 0.0) * 100:.1f}%",
-                    "Avg Latency (ms)": f"{t_stats.get('average_latency_ms', 0.0):.1f}",
+                ranking_rows.append({
+                    "Rank": rank,
+                    "Restaurant": tenant_id,
+                    "Queries": t_stats.get("total_queries", 0),
+                    "Escalations": t_stats.get("escalation_count", 0),
                     "Avg Confidence": f"{t_stats.get('average_confidence_score', 0.0):.4f}",
-                    "Avg Similarity": f"{t_stats.get('average_similarity_score', 0.0):.4f}"
+                    "Avg Latency": f"{t_stats.get('average_latency_ms', 0.0):.1f} ms"
                 })
-                volume_data[tenant_id] = t_stats.get("total_queries", 0)
-                escalation_data[tenant_id] = t_stats.get("escalation_count", 0)
+            df_ranking = pd.DataFrame(ranking_rows)
+            st.dataframe(df_ranking, use_container_width=True, hide_index=True)
             
-            df_comparison = pd.DataFrame(comparison_rows)
-            st.dataframe(df_comparison, use_container_width=True, hide_index=True)
+            # Query Share Analysis
+            st.markdown("### 📊 Query Share Analysis")
+            global_total = sum(all_tenant_stats[t].get("total_queries", 0) for t in active_tenants)
             
-            comp_col1, comp_col2 = st.columns(2)
-            with comp_col1:
-                st.markdown("#### Query Volume by Tenant")
-                st.bar_chart(pd.Series(volume_data))
-            with comp_col2:
-                st.markdown("#### Escalation Count by Tenant")
-                st.bar_chart(pd.Series(escalation_data))
+            share_rows = []
+            share_chart_data = {}
+            for tenant_id in sorted(active_tenants):
+                t_queries = all_tenant_stats[tenant_id].get("total_queries", 0)
+                share_pct = (t_queries / global_total) if global_total > 0 else 0.0
+                share_rows.append({
+                    "Restaurant": tenant_id,
+                    "Queries": t_queries,
+                    "Query Share %": f"{share_pct * 100:.1f}%"
+                })
+                share_chart_data[tenant_id] = share_pct * 100
+                
+            share_col1, share_col2 = st.columns(2)
+            with share_col1:
+                st.markdown("#### Query Share Breakdown")
+                df_share = pd.DataFrame(share_rows)
+                st.dataframe(df_share, use_container_width=True, hide_index=True)
+            with share_col2:
+                st.markdown("#### Query Share Percentage Chart")
+                st.bar_chart(pd.Series(share_chart_data))
+                
         else:
-            st.info("No active tenant analytics available yet for comparison.")
+            st.info("No active tenant analytics traffic recorded yet for comparison.")
             
         st.markdown("<hr style='border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 2rem 0;'/>", unsafe_allow_html=True)
 
