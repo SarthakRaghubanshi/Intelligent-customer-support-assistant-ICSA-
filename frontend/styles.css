@@ -9,7 +9,7 @@ html, body, [class*="css"], [class*="st-"], .stMarkdown, .stText {
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 div[data-testid="stDecoration"] {visibility: hidden;}
-div[data-testid="stToolbar"] {visibility: hidden;}
+div[data-testid="stAppDeployButton"] {visibility: hidden;}
 
 /* Custom styles for Sidebar */
 section[data-testid="stSidebar"] {

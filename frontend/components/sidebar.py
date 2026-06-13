@@ -39,8 +39,15 @@ def render_sidebar():
         
         # Restaurant Context Configurator
         st.markdown("### 🍔 Context Settings")
-        restaurant_options = ["Restaurant_A", "Restaurant_B", "Restaurant_C"]
-        
+        active_view = st.session_state.get("active_view", "💬 Chat Assistant")
+        if active_view == "📊 Analytics Dashboard":
+            restaurant_options = ["All Restaurants", "Restaurant_A", "Restaurant_B", "Restaurant_C"]
+        else:
+            restaurant_options = ["Restaurant_A", "Restaurant_B", "Restaurant_C"]
+
+        if st.session_state.selected_restaurant not in restaurant_options:
+            st.session_state.selected_restaurant = "Restaurant_A"
+
         # Update session state based on select box
         st.session_state.selected_restaurant = st.selectbox(
             "Active Restaurant Context:",
