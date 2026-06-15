@@ -37,6 +37,15 @@ load_css(css_path)
 # Initialize Session State
 init_session_state()
 
+# Authentication Guard
+from utils.auth_helper import init_auth_session_state, check_auth
+from components.auth_ui import render_auth_ui
+
+init_auth_session_state()
+if not check_auth():
+    render_auth_ui()
+    st.stop()
+
 # Render Sidebar Components
 render_sidebar()
 

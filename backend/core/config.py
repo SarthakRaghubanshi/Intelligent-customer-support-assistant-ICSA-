@@ -15,3 +15,8 @@ class Config:
         db_dir = os.path.dirname(db_path)
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
+
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback_local_secret_key_for_development_purposes_only_123456")
+    JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+

@@ -80,11 +80,36 @@ def render_sidebar():
             on_click=clear_chat_history,
             type="secondary"
         )
+
+        st.markdown("<br/>", unsafe_allow_html=True)
+
+        # User Profile & Logout section
+        user = st.session_state.get("user")
+        if user:
+            first = user.get("first_name") or ""
+            last = user.get("last_name") or ""
+            display_name = f"{first} {last}".strip() or user.get("email")
+            role_display = user.get("role", "customer").upper()
+
+            st.markdown(
+                f"""
+                <div style='padding: 1rem; background-color: rgba(108, 92, 231, 0.1); border-radius: 12px; border: 1px solid rgba(108, 92, 231, 0.2); margin-bottom: 0.8rem;'>
+                    <div style='font-weight: 600; color: #F8FAFC; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>👤 {display_name}</div>
+                    <div style='color: rgba(248, 250, 252, 0.5); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;'>{user.get("email")}</div>
+                    <div style='display: inline-block; background-color: #6C5CE7; color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-top: 6px; text-transform: uppercase;'>{role_display}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            from utils.auth_helper import logout_user
+            if st.button("🚪 Log Out", use_container_width=True):
+                logout_user()
         
         # System status panel with metadata
         st.markdown(
             """
-            <div style='margin-top: 3rem; padding: 1.2rem; background-color: rgba(30, 41, 59, 0.4); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);'>
+            <div style='margin-top: 1.5rem; padding: 1.2rem; background-color: rgba(30, 41, 59, 0.4); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);'>
                 <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;'>
                     <span style='font-size: 0.8rem; color: rgba(248, 250, 252, 0.6);'>Core Status</span>
                     <span style='font-size: 0.75rem; color: #10B981; font-weight: bold;'>● Online</span>
@@ -101,3 +126,4 @@ def render_sidebar():
             """,
             unsafe_allow_html=True
         )
+
