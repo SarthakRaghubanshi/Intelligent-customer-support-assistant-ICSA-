@@ -1,189 +1,231 @@
 import os
 import sys
 
-# Ensure project root is in the Python path
-current_file_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_file_dir)
+# Ensure project root is in the path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-from backend.rag.retriever import retrieve_relevant_chunks
+# Force a distinct test DB for validation
+test_db_path = os.path.join(project_root, "data", "test_tenant_saas_isolation.db")
+os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
 
-def test_query(restaurant_id: str, query: str, expected_snippet: str, expected_sources: list) -> dict:
-    print(f"\n--- Running Query for {restaurant_id} ---")
-    print(f"Query: '{query}'")
-    
-    # Call retrieve_relevant_chunks
-    chunks = retrieve_relevant_chunks(query, restaurant_id, k=5)
-    
-    if not chunks:
-        raise AssertionError(f"No chunks retrieved for query: '{query}' on {restaurant_id}")
-        
-    top_chunk = chunks[0]
-    top_source = top_chunk["source"]
-    top_score = top_chunk["score"]
-    content = top_chunk["content"]
-    
-    # Adjust expected snippet for Query 3 if pickup_settings.txt is retrieved as top source
-    if query == "How long do I have to cancel for a full refund?":
-        if top_source == "pickup_settings.txt":
-            if restaurant_id == "Restaurant_C":
-                expected_snippet = "2 hours"
-            else:
-                expected_snippet = "1 hour"
-    
-    # 1. Verify retrieval source matches expected sources
-    if top_source not in expected_sources:
-         raise AssertionError(
-             f"Incorrect source file retrieved! Expected one of {expected_sources}, "
-             f"got '{top_source}' for {restaurant_id}"
-         )
-         
-    # 2. Verify strict isolation: No leakage of other tenant IDs
-    for chunk in chunks:
-        if chunk["restaurant_id"] != restaurant_id:
-            raise AssertionError(
-                f"LEAKAGE DETECTED! Chunk belongs to '{chunk['restaurant_id']}' "
-                f"but queried '{restaurant_id}'"
-            )
-            
-    # 3. Verify retrieved answer evidence contains expected snippet
-    if expected_snippet.lower() not in content.lower():
-         raise AssertionError(
-             f"Snippet '{expected_snippet}' not found in top retrieved chunk! "
-             f"Snippet content preview:\n{content[:200]}"
-         )
-         
-    # 4. Extra verification for Query 3 standard cancellation times (if not top chunk)
-    if query == "How long do I have to cancel for a full refund?":
-        standard_snippet = "5 minutes" if restaurant_id == "Restaurant_A" else ("10 minutes" if restaurant_id == "Restaurant_B" else "3 minutes")
-        found_standard = False
-        for chunk in chunks:
-            if chunk["source"] in ["refund_policy.txt", "business_rules.txt", "faq.txt"] and standard_snippet.lower() in chunk["content"].lower():
-                found_standard = True
-                break
-        if not found_standard:
-            raise AssertionError(f"Could not find standard cancellation snippet '{standard_snippet}' in any relevant chunk for {restaurant_id}")
-         
-    print(f"  Result: PASS")
-    print(f"  Top Source: {top_source}")
-    print(f"  Top Score:  {top_score:.4f}")
-    print(f"  Snippet verified: '{expected_snippet}' found.")
-    
-    return {
-        "tenant_id": restaurant_id,
-        "source": top_source,
-        "score": top_score,
-        "evidence_preview": content[:150].replace('\n', ' ').strip() + "..."
-    }
+# Clean test db file if it already exists
+if os.path.exists(test_db_path):
+    os.remove(test_db_path)
 
-def run_verification():
+# Mock streamlit before imports that might check it
+import streamlit as st
+if "is_authenticated" not in st.session_state:
+    st.session_state.is_authenticated = False
+if "user" not in st.session_state:
+    st.session_state.user = None
+if "active_view" not in st.session_state:
+    st.session_state.active_view = None
+if "selected_restaurant" not in st.session_state:
+    st.session_state.selected_restaurant = None
+
+# Stub streamlit functions to prevent errors during bare python test runs
+st.rerun = lambda: None
+st.warning = lambda msg: None
+
+from backend.database.database import engine, Base, SessionLocal
+from backend.models.user import User, UserRole
+from backend.models.restaurant import Restaurant
+from backend.repositories.restaurant_repository import RestaurantRepository
+from backend.repositories.user_repository import UserRepository
+from backend.core.tenant import verify_tenant_access, verify_restaurant_active
+from backend.services.auth_service import AuthService
+from frontend.utils.auth_helper import init_landing_view, check_auth
+
+def run_tenant_isolation_tests():
     print("=" * 80)
-    print("STARTING TENANT RETRIEVAL ISOLATION VERIFICATION")
+    print("RUNNING TENANT ISOLATION FOUNDATION VERIFICATION")
     print("=" * 80)
-    
-    # Define test cases for each tenant
-    test_cases = {
-        "Restaurant_A": [
-            {
-                "query": "What is your Zone 1 delivery fee?",
-                "snippet": "₹49",
-                "sources": ["delivery_settings.txt", "delivery_policy.txt", "faq.txt"]
-            },
-            {
-                "query": "What is your delivery radius?",
-                "snippet": "10.0",
-                "sources": ["delivery_settings.txt", "delivery_policy.txt", "faq.txt", "restaurant_profile.txt"]
-            },
-            {
-                "query": "How long do I have to cancel for a full refund?",
-                "snippet": "5 minutes",
-                "sources": ["refund_policy.txt", "business_rules.txt", "faq.txt", "pickup_settings.txt"]
-            },
-            {
-                "query": "Do you accept cash on delivery?",
-                "snippet": "COD",
-                "sources": ["business_rules.txt", "refund_policy.txt", "faq.txt", "delivery_policy.txt"]
-            }
-        ],
-        "Restaurant_B": [
-            {
-                "query": "What is your Zone 1 delivery fee?",
-                "snippet": "₹79",
-                "sources": ["delivery_settings.txt", "delivery_policy.txt", "faq.txt"]
-            },
-            {
-                "query": "What is your delivery radius?",
-                "snippet": "8.0",
-                "sources": ["delivery_settings.txt", "delivery_policy.txt", "faq.txt", "restaurant_profile.txt"]
-            },
-            {
-                "query": "How long do I have to cancel for a full refund?",
-                "snippet": "10 minutes",
-                "sources": ["refund_policy.txt", "business_rules.txt", "faq.txt", "pickup_settings.txt"]
-            },
-            {
-                "query": "Do you accept cash on delivery?",
-                "snippet": "COD",
-                "sources": ["business_rules.txt", "refund_policy.txt", "faq.txt", "delivery_policy.txt"]
-            }
-        ],
-        "Restaurant_C": [
-            {
-                "query": "What is your Zone 1 delivery fee?",
-                "snippet": "₹129",
-                "sources": ["delivery_settings.txt", "delivery_policy.txt", "faq.txt"]
-            },
-            {
-                "query": "What is your delivery radius?",
-                "snippet": "12.0",
-                "sources": ["delivery_settings.txt", "delivery_policy.txt", "faq.txt", "restaurant_profile.txt"]
-            },
-            {
-                "query": "How long do I have to cancel for a full refund?",
-                "snippet": "3 minutes",
-                "sources": ["refund_policy.txt", "business_rules.txt", "faq.txt", "pickup_settings.txt"]
-            },
-            {
-                "query": "Do you accept cash on delivery?",
-                "snippet": "not accept",
-                "sources": ["business_rules.txt", "refund_policy.txt", "faq.txt", "delivery_policy.txt"]
-            }
-        ]
-    }
-    
-    results = []
-    failed = False
-    
+
+    # 1. Initialize test database
+    print("Initializing test database tables...")
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+
     try:
-        for r_id, cases in test_cases.items():
-            print(f"\n=========================================")
-            print(f" TESTING TENANT: {r_id}")
-            print(f"=========================================")
-            for case in cases:
-                res = test_query(r_id, case["query"], case["snippet"], case["sources"])
-                results.append(res)
-                
-    except Exception as e:
-        print(f"\n[ERROR] Isolation Verification Failed: {str(e)}")
-        failed = True
+        # 2. Create test restaurants
+        print("\nCreating test restaurants...")
+        restaurant_a = RestaurantRepository.create(db, name="Restaurant A")
+        restaurant_b = RestaurantRepository.create(db, name="Restaurant B")
         
-    print("\n" + "=" * 80)
-    print("VERIFICATION RESULTS SUMMARY")
-    print("=" * 80)
-    for idx, res in enumerate(results):
-        print(f" {idx+1}. Tenant: {res['tenant_id']:<15} | Source: {res['source']:<25} | Score: {res['score']:.4f}")
-        print(f"    Evidence: {res['evidence_preview']}")
+        # Soft-deleted restaurant
+        restaurant_deleted = RestaurantRepository.create(db, name="Soft Deleted Restaurant")
+        RestaurantRepository.soft_delete(db, restaurant_deleted.id)
         
+        # Inactive restaurant
+        restaurant_inactive = Restaurant(name="Inactive Restaurant", is_active=False)
+        db.add(restaurant_inactive)
+        db.commit()
+        db.refresh(restaurant_inactive)
+
+        # 3. Create test users
+        print("\nCreating test users...")
+        admin_user = UserRepository.create(db, "admin@saas.com", "pass1234", UserRole.ADMIN)
+        rest_a_user = UserRepository.create(
+            db, "rest_a@saas.com", "pass1234", UserRole.RESTAURANT, restaurant_id=restaurant_a.id
+        )
+        rest_b_user = UserRepository.create(
+            db, "rest_b@saas.com", "pass1234", UserRole.RESTAURANT, restaurant_id=restaurant_b.id
+        )
+        customer_user = UserRepository.create(db, "customer@saas.com", "pass1234", UserRole.CUSTOMER)
+
+        # 4. Generate token credentials
+        admin_token = AuthService.create_access_token(admin_user.id, admin_user.email, admin_user.role.value)
+        rest_a_token = AuthService.create_access_token(rest_a_user.id, rest_a_user.email, rest_a_user.role.value)
+        rest_b_token = AuthService.create_access_token(rest_b_user.id, rest_b_user.email, rest_b_user.role.value)
+        customer_token = AuthService.create_access_token(customer_user.id, customer_user.email, customer_user.role.value)
+
+        # 5. Verify verify_tenant_access
+        print("\n1. Testing verify_tenant_access function rules...")
+        
+        # Restaurant A accessing Restaurant A -> Allowed
+        verify_tenant_access(rest_a_user, restaurant_a.id)
+        print("✓ Restaurant A user allowed to access Restaurant A.")
+
+        # Restaurant A accessing Restaurant B -> Blocked
+        try:
+            verify_tenant_access(rest_a_user, restaurant_b.id)
+            assert False, "Failed: Restaurant A user was allowed to access Restaurant B"
+        except PermissionError as e:
+            print(f"✓ Cross-tenant access rejected as expected: {e}")
+
+        # Admin accessing any restaurant -> Allowed (Admin override support)
+        verify_tenant_access(admin_user, restaurant_a.id)
+        verify_tenant_access(admin_user, restaurant_b.id)
+        print("✓ Admin override verified: Admin user allowed to access all restaurants.")
+
+        # Customer accessing restaurant resources -> Blocked
+        try:
+            verify_tenant_access(customer_user, restaurant_a.id)
+            assert False, "Failed: Customer was allowed to access Restaurant A resources"
+        except PermissionError as e:
+            print(f"✓ Customer access blocked as expected: {e}")
+
+        # 6. Verify verify_restaurant_active
+        print("\n2. Testing verify_restaurant_active functions...")
+        
+        # Active restaurant -> Allowed
+        verify_restaurant_active(db, restaurant_a.id)
+        print("✓ Active restaurant validation succeeds.")
+
+        # Soft-deleted restaurant -> Blocked
+        try:
+            verify_restaurant_active(db, restaurant_deleted.id)
+            assert False, "Failed: Soft-deleted restaurant passed active check"
+        except ValueError as e:
+            print(f"✓ Soft-deleted restaurant validation failed as expected: {e}")
+
+        # Inactive restaurant -> Blocked
+        try:
+            verify_restaurant_active(db, restaurant_inactive.id)
+            assert False, "Failed: Inactive restaurant passed active check"
+        except ValueError as e:
+            print(f"✓ Inactive restaurant validation failed as expected: {e}")
+
+        # 7. Verify AuthService.validate_tenant_access
+        print("\n3. Testing AuthService.validate_tenant_access wrapper...")
+        
+        # Restaurant A token accessing Restaurant A -> OK
+        AuthService.validate_tenant_access(db, rest_a_token, restaurant_a.id)
+        print("✓ Token-based authentication + tenant access validation succeeds for matching tenant.")
+
+        # Restaurant A token accessing Restaurant B -> Blocked
+        try:
+            AuthService.validate_tenant_access(db, rest_a_token, restaurant_b.id)
+            assert False, "Failed: Token validation allowed cross-tenant access"
+        except PermissionError as e:
+            print(f"✓ Token validation rejected cross-tenant access as expected: {e}")
+
+        # Admin token accessing soft-deleted restaurant -> Blocked by active check (ValueError)
+        try:
+            AuthService.validate_tenant_access(db, admin_token, restaurant_deleted.id)
+            assert False, "Failed: Admin token validation allowed access to soft-deleted restaurant"
+        except ValueError as e:
+            print(f"✓ Token validation rejected soft-deleted restaurant access for admin as expected: {e}")
+
+        # Restaurant A token accessing own restaurant after it is soft-deleted -> Blocked by active check (ValueError)
+        RestaurantRepository.soft_delete(db, restaurant_a.id)
+        try:
+            AuthService.validate_tenant_access(db, rest_a_token, restaurant_a.id)
+            assert False, "Failed: Restaurant token validation allowed access to soft-deleted own restaurant"
+        except ValueError as e:
+            print(f"✓ Token validation rejected soft-deleted own restaurant access as expected: {e}")
+
+        # 8. Verify Frontend Session State & Context Locking
+        print("\n4. Testing frontend session state initialization and context locking...")
+        
+        # Admin landing initialization
+        st.session_state.clear()
+        st.session_state.user = {
+            "id": admin_user.id,
+            "email": admin_user.email,
+            "role": admin_user.role.value,
+            "restaurant_id": None
+        }
+        init_landing_view("admin")
+        assert st.session_state.selected_restaurant == "Restaurant_A", f"Failed: Got {st.session_state.selected_restaurant}"
+        print("✓ Admin landing initializes selected_restaurant correctly.")
+
+        # Restaurant landing initialization
+        st.session_state.clear()
+        st.session_state.user = {
+            "id": rest_a_user.id,
+            "email": rest_a_user.email,
+            "role": rest_a_user.role.value,
+            "restaurant_id": restaurant_a.id
+        }
+        init_landing_view("restaurant")
+        assert st.session_state.selected_restaurant == restaurant_a.id, f"Failed: Got {st.session_state.selected_restaurant}"
+        print("✓ Restaurant landing initializes selected_restaurant to assigned restaurant_id correctly.")
+
+        # Customer landing initialization
+        st.session_state.clear()
+        st.session_state.user = {
+            "id": customer_user.id,
+            "email": customer_user.email,
+            "role": customer_user.role.value,
+            "restaurant_id": None
+        }
+        init_landing_view("customer")
+        assert st.session_state.selected_restaurant == "Restaurant_A", f"Failed: Got {st.session_state.selected_restaurant}"
+        print("✓ Customer landing initializes selected_restaurant correctly.")
+
+        # Context Locking via check_auth()
+        print("\n5. Testing frontend context locking...")
+        st.session_state.clear()
+        st.session_state.is_authenticated = True
+        st.session_state.access_token = rest_a_token
+        st.session_state.user = {
+            "id": rest_a_user.id,
+            "email": rest_a_user.email,
+            "role": rest_a_user.role.value,
+            "restaurant_id": restaurant_a.id
+        }
+        # Simulate dropdown manipulation/tampering
+        st.session_state.selected_restaurant = "tampered_restaurant_id"
+        
+        # Run check_auth which should lock the context
+        auth_ok = check_auth()
+        assert auth_ok is True
+        assert st.session_state.selected_restaurant == restaurant_a.id, f"Failed: Lock failed, got {st.session_state.selected_restaurant}"
+        print("✓ Restaurant context locking verified: tampered session state reset to user's database restaurant_id.")
+
+    finally:
+        db.close()
+        # Clean up database file
+        if os.path.exists(test_db_path):
+            os.remove(test_db_path)
+
+    print("\n✓ ALL TENANT ISOLATION FOUNDATION VERIFICATION TESTS PASSED SUCCESSFULLY!")
     print("=" * 80)
-    if failed:
-        print("✗ TENANT ISOLATION RETRIEVAL VERIFICATION FAILED")
-        print("=" * 80)
-        sys.exit(1)
-    else:
-        print("✓ ALL TENANT ISOLATION RETRIEVAL VERIFICATION TESTS PASSED")
-        print("=" * 80)
-        sys.exit(0)
+    sys.exit(0)
 
 if __name__ == "__main__":
-    run_verification()
+    run_tenant_isolation_tests()

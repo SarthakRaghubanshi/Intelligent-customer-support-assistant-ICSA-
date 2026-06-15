@@ -80,8 +80,9 @@ def render_sidebar():
             
         elif role == "restaurant":
             st.markdown("### 🍔 Context Settings")
-            restaurant_options = ["Restaurant_A"]
-            st.session_state.selected_restaurant = "Restaurant_A"
+            restaurant_id = user.get("restaurant_id")
+            restaurant_options = [restaurant_id] if restaurant_id else ["No Restaurant Assigned"]
+            st.session_state.selected_restaurant = restaurant_id
             st.selectbox(
                 "Active Restaurant Context:",
                 options=restaurant_options,

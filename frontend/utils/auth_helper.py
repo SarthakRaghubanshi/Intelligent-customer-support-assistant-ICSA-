@@ -38,7 +38,8 @@ def login_user(email: str, password_raw: str) -> Tuple[bool, str]:
             "email": user.email,
             "role": user.role.value,
             "first_name": user.first_name,
-            "last_name": user.last_name
+            "last_name": user.last_name,
+            "restaurant_id": user.restaurant_id
         }
         
         # Initialize default view based on role
@@ -50,14 +51,22 @@ def login_user(email: str, password_raw: str) -> Tuple[bool, str]:
         db.close()
 
 def init_landing_view(role: str):
-    """Initializes the landing view in session state based on user role."""
+    """Initializes the landing view and restaurant context in session state based on user role."""
     role_normalized = str(role).strip().lower()
     if role_normalized == "admin":
         st.session_state.active_view = "⚙️ Admin Dashboard"
+        if "selected_restaurant" not in st.session_state or st.session_state.selected_restaurant is None:
+            st.session_state.selected_restaurant = "Restaurant_A"
     elif role_normalized == "restaurant":
         st.session_state.active_view = "📊 Restaurant Dashboard"
+        user_info = st.session_state.get("user")
+        if user_info:
+            st.session_state.selected_restaurant = user_info.get("restaurant_id")
     else:
         st.session_state.active_view = "💬 Customer Dashboard"
+        if "selected_restaurant" not in st.session_state or st.session_state.selected_restaurant is None:
+            st.session_state.selected_restaurant = "Restaurant_A"
+
 
 
 def register_user(
@@ -115,6 +124,10 @@ def check_auth() -> bool:
             # Ensure active_view is initialized
             if "active_view" not in st.session_state or st.session_state.active_view is None:
                 init_landing_view(st.session_state.user.get("role"))
+                
+            # Restrict context selector value for restaurant staff/managers
+            if st.session_state.user.get("role") == "restaurant":
+                st.session_state.selected_restaurant = st.session_state.user.get("restaurant_id")
                 
             return True
         except Exception:

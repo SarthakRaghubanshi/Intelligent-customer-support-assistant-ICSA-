@@ -133,3 +133,16 @@ class AuthService:
             raise PermissionError("Permission Denied")
         return token_data
 
+    @staticmethod
+    def validate_tenant_access(db: Session, token: str, target_restaurant_id: str) -> User:
+        """
+        Retrieves current user, verifies their tenant access rights, 
+        and ensures the target restaurant is active.
+        """
+        from backend.core.tenant import verify_tenant_access, verify_restaurant_active
+        user = AuthService.get_current_user(db, token)
+        verify_tenant_access(user, target_restaurant_id)
+        verify_restaurant_active(db, target_restaurant_id)
+        return user
+
+
