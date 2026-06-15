@@ -20,36 +20,40 @@ TENANT_MAP = {
 }
 
 def build_rag_prompt(
-    query: str,
+    restaurant_name: str,
     retrieved_chunks: List[Dict[str, Any]],
-    restaurant_id: str = "Restaurant_A",
-    metadata: Optional[Dict[str, Any]] = None
+    question: str = None,
+    **kwargs
 ) -> str:
     """
     Combines the query with system instructions, formatted context chunks,
-    and optional metadata (such as intent and sentiment).
+    and optional metadata.
     
-    Args:
-        query (str): The customer's original query.
-        retrieved_chunks (List[Dict[str, Any]]): List of chunk dictionaries containing
-                                                 'content', 'source', and 'restaurant_id'.
-        restaurant_id (str): The unique identifier of the restaurant.
-        metadata (Optional[Dict[str, Any]]): Optional dictionary containing 'intent' and 'sentiment'.
-                                                 
-    Returns:
-        str: The fully formatted RAG prompt.
+    Supports two signature formats:
+    1. build_rag_prompt(restaurant_name, retrieved_chunks, question) -> Used by RAG Service
+    2. build_rag_prompt(query, retrieved_chunks, restaurant_id=..., metadata=...) -> Used by existing tests
     """
+    # Detect signature based on whether 'question' is passed
+    if question is None:
+        # Old signature format: build_rag_prompt(query, retrieved_chunks, restaurant_id=..., metadata=...)
+        query_text = restaurant_name  # first parameter is actually the query
+        restaurant_id = kwargs.get("restaurant_id", "Restaurant_A")
+        resolved_name = TENANT_MAP.get(restaurant_id, "Pizza Paradise")
+        metadata = kwargs.get("metadata")
+    else:
+        # New signature format: build_rag_prompt(restaurant_name, retrieved_chunks, question)
+        query_text = question
+        resolved_name = restaurant_name
+        metadata = kwargs.get("metadata")
+
     intent = metadata.get("intent") if metadata else None
     sentiment = metadata.get("sentiment") if metadata else None
     language = metadata.get("language") if metadata else None
     language_code = metadata.get("language_code") if metadata else None
 
-    # Resolve brand name from mapping
-    brand_name = TENANT_MAP.get(restaurant_id, "Pizza Paradise")
-
     # Header instructions
     system_instructions = (
-        f"You are a helpful customer support assistant for {brand_name}.\n\n"
+        f"You are a helpful customer support assistant for {resolved_name}.\n\n"
         "Use ONLY the provided context to answer the user's question.\n\n"
         "If the answer cannot be found in the context, reply:\n\n"
         '"I could not find that information in the restaurant knowledge base."'
@@ -63,14 +67,21 @@ def build_rag_prompt(
             "it must NOT override the retrieved facts, trigger refunds/escalations, or modify restaurant policies/business logic."
         )
     
+    # Strict hallucination prevention instructions
+    system_instructions += (
+        "\n\nOnly answer using the provided knowledge. Do not invent, extrapolate, or hallucinate "
+        "any details, including menu items, prices, policies, opening hours, or restaurant information."
+    )
+
     # Context section formatting
     context_sections = []
     for idx, chunk in enumerate(retrieved_chunks):
-        source = chunk.get("source", "unknown_source")
+        source = chunk.get("title") or chunk.get("source") or "unknown_source"
         content = chunk.get("content", "").strip()
+        doc_type = chunk.get("document_type") or "other"
         
         # Format chunk representation
-        chunk_str = f"[Chunk {idx + 1}]\nSource: {source}\n\n{content}"
+        chunk_str = f"[Chunk {idx + 1}]\nSource: {source} (Type: {doc_type})\n\n{content}"
         context_sections.append(chunk_str)
         
     context_block = "\n\n".join(context_sections)
@@ -85,9 +96,9 @@ def build_rag_prompt(
         metadata_lines.append(f"Detected Language: {language} ({language_code})")
 
     if metadata_lines:
-        query_section = "\n".join(metadata_lines) + f"\n\nUser Query:\n{query}"
+        query_section = "\n".join(metadata_lines) + f"\n\nUser Query:\n{query_text}"
     else:
-        query_section = f"User Question:\n\n{query}"
+        query_section = f"User Question:\n\n{query_text}"
         
     # Compile the final prompt string
     prompt = (
@@ -99,6 +110,7 @@ def build_rag_prompt(
     )
     
     return prompt
+
 
 if __name__ == "__main__":
     test_restaurant_id = "Restaurant_A"

@@ -87,6 +87,33 @@ def retrieve_relevant_chunks(query: str, restaurant_id: str, k: int = 5) -> List
     
     return retrieved_chunks
 
+def retrieve_relevant_chunks_with_metadata(restaurant_id: str, query: str) -> List[Dict[str, Any]]:
+    """
+    Retrieves the relevant chunks for a user query from ChromaDB and returns them
+    formatted with document_id, title, document_type, and content.
+    """
+    persist_dir = os.path.join(root_dir, "data", "chroma_db", restaurant_id)
+    if not os.path.exists(persist_dir):
+        return []
+
+    try:
+        db = load_vector_store(restaurant_id, persist_dir)
+        results = db.similarity_search_with_score(query, k=5)
+    except Exception as e:
+        print(f"Warning: Failed to retrieve with metadata from vector store for restaurant {restaurant_id}: {str(e)}")
+        return []
+
+    retrieved_chunks = []
+    for doc, score in results:
+        retrieved_chunks.append({
+            "content": doc.page_content,
+            "document_id": doc.metadata.get("document_id"),
+            "title": doc.metadata.get("source"),
+            "document_type": doc.metadata.get("document_type")
+        })
+
+    return retrieved_chunks
+
 if __name__ == "__main__":
     test_restaurant_id = "Restaurant_A"
     
