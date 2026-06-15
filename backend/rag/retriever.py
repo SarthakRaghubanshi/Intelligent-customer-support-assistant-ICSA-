@@ -13,6 +13,10 @@ if root_dir not in sys.path:
 
 from backend.rag.vector_store import load_vector_store
 
+# NOTE: The retriever must not directly import or depend on GeminiEmbedder.
+# Embedding generation logic belongs strictly beneath the vector store layer (vector_store.py).
+# All query embedding resolution occurs dynamically within Chroma using the configured embedding function.
+
 def retrieve_relevant_chunks(query: str, restaurant_id: str, k: int = 5) -> List[Dict[str, Any]]:
     """
     Retrieves the top k semantically relevant chunks for a user query from ChromaDB.

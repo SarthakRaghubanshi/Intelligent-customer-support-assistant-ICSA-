@@ -23,39 +23,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 from backend.rag.document_loader import load_restaurant_documents
 from backend.rag.text_splitter import split_documents
 
-class GeminiCustomEmbeddings(Embeddings):
-    """
-    Custom LangChain Embeddings wrapper utilizing Google's models/gemini-embedding-2.
-    """
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-        genai.configure(api_key=self.api_key)
-
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        try:
-            response = genai.embed_content(
-                model="models/gemini-embedding-2",
-                content=texts,
-                task_type="retrieval_document"
-            )
-            # Returns List[List[float]]
-            return response["embedding"]
-        except Exception as e:
-            print(f"Error embedding documents: {str(e)}", file=sys.stderr)
-            raise e
-
-    def embed_query(self, text: str) -> List[float]:
-        try:
-            response = genai.embed_content(
-                model="models/gemini-embedding-2",
-                content=text,
-                task_type="retrieval_query"
-            )
-            # Returns List[float]
-            return response["embedding"]
-        except Exception as e:
-            print(f"Error embedding query: {str(e)}", file=sys.stderr)
-            raise e
+from backend.rag.embedder import GeminiEmbedder
 
 def load_vector_store(restaurant_id: str, persist_dir: str) -> Chroma:
     """
@@ -64,7 +32,7 @@ def load_vector_store(restaurant_id: str, persist_dir: str) -> Chroma:
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY is not configured in .env file.")
         
-    embeddings = GeminiCustomEmbeddings(GEMINI_API_KEY)
+    embeddings = GeminiEmbedder()
     
     # Load existing database
     db = Chroma(
@@ -72,6 +40,19 @@ def load_vector_store(restaurant_id: str, persist_dir: str) -> Chroma:
         embedding_function=embeddings,
         persist_directory=persist_dir
     )
+    
+    # Fail-fast validation of embedding dimensions
+    try:
+        existing = db.get(limit=1, include=["embeddings"])
+        if existing is not None and existing.get("embeddings") is not None and len(existing["embeddings"]) > 0:
+            existing_dim = len(existing["embeddings"][0])
+            model_dim = embeddings.validate_embedding_dimensions()
+            if existing_dim != model_dim:
+                raise ValueError(f"Embedding dimension mismatch: store has {existing_dim}, model has {model_dim}")
+    except Exception as e:
+        if isinstance(e, ValueError):
+            raise e
+            
     return db
 
 def create_vector_store(restaurant_id: str, data_dir: str, persist_dir: str) -> Chroma:
@@ -82,7 +63,7 @@ def create_vector_store(restaurant_id: str, data_dir: str, persist_dir: str) -> 
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY is not configured in .env file.")
         
-    embeddings = GeminiCustomEmbeddings(GEMINI_API_KEY)
+    embeddings = GeminiEmbedder()
     
     # Load or initialize vector store
     db = Chroma(
@@ -91,9 +72,21 @@ def create_vector_store(restaurant_id: str, data_dir: str, persist_dir: str) -> 
         persist_directory=persist_dir
     )
     
+    # Fail-fast validation of embedding dimensions
+    try:
+        existing = db.get(limit=1, include=["embeddings"])
+        if existing is not None and existing.get("embeddings") is not None and len(existing["embeddings"]) > 0:
+            existing_dim = len(existing["embeddings"][0])
+            model_dim = embeddings.validate_embedding_dimensions()
+            if existing_dim != model_dim:
+                raise ValueError(f"Embedding dimension mismatch: store has {existing_dim}, model has {model_dim}")
+    except Exception as e:
+        if isinstance(e, ValueError):
+            raise e
+            
     # Check if database contains vectors
     existing_docs = db.get()
-    if existing_docs and existing_docs.get("ids"):
+    if existing_docs is not None and existing_docs.get("ids") is not None and len(existing_docs["ids"]) > 0:
         # ChromaDB already populated - load from disk and do not rebuild
         print(f"Loaded existing database from {persist_dir}")
         num_vectors = len(existing_docs["ids"])
