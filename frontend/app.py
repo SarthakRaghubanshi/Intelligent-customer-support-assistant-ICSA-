@@ -53,6 +53,11 @@ render_sidebar()
 active_view = st.session_state.get("active_view", "💬 Chat Assistant")
 
 if active_view == "💬 Chat Assistant":
+    from utils.auth_helper import has_permission
+    if not has_permission("chat:read_write"):
+        st.error("Permission Denied")
+        st.stop()
+
     st.markdown(
         """
         <div style='display: flex; align-items: center; gap: 16px; margin-bottom: 2rem;'>
@@ -147,5 +152,10 @@ if active_view == "💬 Chat Assistant":
             "escalation": escalation_data
         })
 else:
+    from utils.auth_helper import has_permission
+    if not has_permission("analytics:read_own"):
+        st.error("Permission Denied")
+        st.stop()
     # Render Dashboard view
     render_dashboard()
+

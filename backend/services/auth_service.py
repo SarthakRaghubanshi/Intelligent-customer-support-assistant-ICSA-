@@ -108,3 +108,28 @@ class AuthService:
         if not user.is_active:
             raise ValueError("User account is disabled")
         return user
+
+    @staticmethod
+    def authorize_permission(token: str, required_permission: str) -> TokenData:
+        """
+        Validates the token and verifies the user has the required permission.
+        Raises PermissionError if unauthorized.
+        """
+        from backend.core.permissions import has_permission
+        token_data = AuthService.validate_access_token(token)
+        if not has_permission(token_data.role, required_permission):
+            raise PermissionError("Permission Denied")
+        return token_data
+
+    @staticmethod
+    def authorize_role(token: str, required_role: str) -> TokenData:
+        """
+        Validates the token and verifies the user has the required role.
+        Raises PermissionError if unauthorized.
+        """
+        from backend.core.permissions import has_role
+        token_data = AuthService.validate_access_token(token)
+        if not has_role(token_data.role, required_role):
+            raise PermissionError("Permission Denied")
+        return token_data
+

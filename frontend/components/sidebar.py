@@ -29,9 +29,21 @@ def render_sidebar():
         
         # Navigation controls using Streamlit automatic state binding
         st.markdown("### 🧭 Navigation")
+        
+        from utils.auth_helper import has_permission
+        
+        nav_options = ["💬 Chat Assistant"]
+        if has_permission("analytics:read_own"):
+            nav_options.append("📊 Analytics Dashboard")
+            
+        # Normalize active_view state if current value is restricted
+        current_view = st.session_state.get("active_view", "💬 Chat Assistant")
+        if current_view not in nav_options:
+            st.session_state.active_view = "💬 Chat Assistant"
+
         st.selectbox(
             "Go to Page:",
-            options=["💬 Chat Assistant", "📊 Analytics Dashboard"],
+            options=nav_options,
             key="active_view"
         )
         

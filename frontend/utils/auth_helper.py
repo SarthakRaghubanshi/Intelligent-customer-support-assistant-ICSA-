@@ -107,3 +107,24 @@ def check_auth() -> bool:
             st.rerun()
             return False
     return False
+
+def has_permission(permission: str) -> bool:
+    """
+    Checks if the currently logged-in user has the required permission scope.
+    """
+    if not st.session_state.get("is_authenticated", False) or not st.session_state.get("user"):
+        return False
+    user_role = st.session_state.user.get("role")
+    from backend.core.permissions import has_permission as backend_has_permission
+    return backend_has_permission(user_role, permission)
+
+def has_role(role: str) -> bool:
+    """
+    Checks if the currently logged-in user matches the required role.
+    """
+    if not st.session_state.get("is_authenticated", False) or not st.session_state.get("user"):
+        return False
+    user_role = st.session_state.user.get("role")
+    from backend.core.permissions import has_role as backend_has_role
+    return backend_has_role(user_role, role)
+
