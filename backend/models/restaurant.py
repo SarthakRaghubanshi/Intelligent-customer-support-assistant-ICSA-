@@ -21,3 +21,6 @@ class Restaurant(Base):
 
     # Relationship to Users
     users = relationship("User", back_populates="restaurant")
+    
+    # Relationship to Knowledge Documents (no cascade delete)
+    knowledge_documents = relationship("KnowledgeDocument", back_populates="restaurant")
