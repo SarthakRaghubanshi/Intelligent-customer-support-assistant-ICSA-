@@ -37,14 +37,19 @@ class KnowledgeRepository:
         ).first()
 
     @staticmethod
-    def list_by_restaurant(db: Session, restaurant_id: str) -> List[KnowledgeDocument]:
+    def list_by_restaurant(
+        db: Session,
+        restaurant_id: str,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[KnowledgeDocument]:
         """
-        Lists all active, non-soft-deleted documents belonging to a restaurant.
+        Lists active, non-soft-deleted documents belonging to a restaurant with pagination parameters.
         """
         return db.query(KnowledgeDocument).filter(
             KnowledgeDocument.restaurant_id == restaurant_id,
             KnowledgeDocument.deleted_at.is_(None)
-        ).all()
+        ).limit(limit).offset(offset).all()
 
     @staticmethod
     def search_by_document_type(
@@ -110,3 +115,13 @@ class KnowledgeRepository:
         doc.deleted_at = func.now()
         db.commit()
         return True
+
+    @staticmethod
+    def get_document_count(db: Session, restaurant_id: str) -> int:
+        """
+        Counts the active (non-soft-deleted) documents for a restaurant.
+        """
+        return db.query(KnowledgeDocument).filter(
+            KnowledgeDocument.restaurant_id == restaurant_id,
+            KnowledgeDocument.deleted_at.is_(None)
+        ).count()

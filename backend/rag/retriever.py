@@ -30,11 +30,20 @@ def retrieve_relevant_chunks(query: str, restaurant_id: str, k: int = 5) -> List
     # 1. Resolve path to Chroma database
     persist_dir = os.path.join(root_dir, "data", "chroma_db", restaurant_id)
     
-    # 2. Load persistent ChromaDB
-    db = load_vector_store(restaurant_id, persist_dir)
-    
-    # 4. Perform semantic similarity search with score
-    results = db.similarity_search_with_score(query, k=k)
+    # Check if persist directory exists to prevent empty db crashes
+    if not os.path.exists(persist_dir):
+        print(f"Warning: No persistent vector store found for restaurant {restaurant_id}. Returning empty results.")
+        return []
+
+    try:
+        # 2. Load persistent ChromaDB
+        db = load_vector_store(restaurant_id, persist_dir)
+        
+        # 4. Perform semantic similarity search with score
+        results = db.similarity_search_with_score(query, k=k)
+    except Exception as e:
+        print(f"Warning: Failed to retrieve from vector store for restaurant {restaurant_id}: {str(e)}")
+        return []
     
     # 6. Print retrieved chunks in terminal
     print(f"\nQuery: {query}")

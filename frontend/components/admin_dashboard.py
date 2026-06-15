@@ -2,12 +2,13 @@ import streamlit as st
 import pandas as pd
 from backend.database.database import get_db
 from backend.services.analytics_service import AnalyticsService
+from backend.services.knowledge_service import KnowledgeService
 from backend.repositories.restaurant_repository import RestaurantRepository
 
 def render_admin_dashboard():
     """
     Renders the admin dashboard with global aggregates, single tenant insights,
-    and comparative analytics tools.
+    comparative analytics, and restaurant knowledge base views.
     """
     user = st.session_state.get("user", {})
     first = user.get("first_name") or ""
@@ -30,17 +31,17 @@ def render_admin_dashboard():
     )
 
     st.markdown("<br/>", unsafe_allow_html=True)
-    st.markdown("### 📊 Platform Analytics Control Panel")
+    st.markdown("### 📊 Platform Analytics & Management Control Panel")
 
     db_gen = get_db()
     db = next(db_gen)
     try:
         token = st.session_state.get("access_token")
 
-        # Analysis scope selectbox
+        # Analysis scope selectbox including new Knowledge Base inspection scope
         scope = st.selectbox(
             "Select Analysis Scope:",
-            options=["Global Overview", "Single Restaurant Detail", "Compare Restaurants"]
+            options=["Global Overview", "Single Restaurant Detail", "Compare Restaurants", "Restaurant Knowledge Base"]
         )
 
         st.markdown("<hr style='border-top: 1px solid rgba(255, 255, 255, 0.05);'/>", unsafe_allow_html=True)
@@ -188,9 +189,54 @@ def render_admin_dashboard():
                         )
                         
                     st.markdown("\n".join(table_rows), unsafe_allow_html=True)
+
+        elif scope == "Restaurant Knowledge Base":
+            st.markdown("### 📚 Restaurant Knowledge Base Inspection Panel")
+            active_rests = RestaurantRepository.list_active(db)
+            if not active_rests:
+                st.info("No active restaurants found on the platform.")
+            else:
+                rest_map = {r.name: r.id for r in active_rests}
+                
+                # Reuses active sidebar selected_restaurant context if matching name is found
+                default_idx = 0
+                sidebar_selected = st.session_state.get("selected_restaurant")
+                for i, r in enumerate(active_rests):
+                    if r.id == sidebar_selected or r.name == sidebar_selected:
+                        default_idx = i
+                        break
+                        
+                selected_name = st.selectbox("Select Restaurant:", options=list(rest_map.keys()), index=default_idx)
+                selected_id = rest_map[selected_name]
+
+                # Document search input
+                search_query = st.text_input("🔍 Search documents by title:", placeholder="Type a title query to search...")
+
+                # Retrieve matching documents using the service layer
+                if search_query.strip():
+                    docs = KnowledgeService.search_documents(db, token, selected_id, search_query)
+                else:
+                    docs = KnowledgeService.list_documents(db, token, selected_id)
+
+                st.markdown("<br/>", unsafe_allow_html=True)
+                doc_count = KnowledgeService.get_document_count(db, token, selected_id)
+                st.info(f"ℹ️ Active Documents in Knowledge Base: **{doc_count}**")
+
+                if not docs:
+                    st.write("No matching documents found in this restaurant's knowledge base.")
+                else:
+                    st.markdown("#### Document Results")
+                    for doc in docs:
+                        with st.expander(f"📄 {doc.title} ({doc.document_type.upper()})"):
+                            st.write(f"**Document ID:** `{doc.id}`")
+                            st.write(f"**Created At:** {doc.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+                            st.write(f"**Last Updated:** {doc.updated_at.strftime('%Y-%m-%d %H:%M:%S')}")
+                            st.markdown("---")
+                            st.write("**Content Details:**")
+                            st.info(doc.content)
                     
     except Exception as e:
-        st.error(f"Failed to load analytics: {str(e)}")
+        st.error(f"Failed to load dashboard data: {str(e)}")
     finally:
         db.close()
 

@@ -118,6 +118,103 @@ def create_vector_store(restaurant_id: str, data_dir: str, persist_dir: str) -> 
     
     return db
 
+def add_document_to_vector_store(restaurant_id: str, doc_id: str, title: str, content: str, document_type: str) -> None:
+    """
+    Chunks, embeds, and adds a database document to the restaurant's ChromaDB collection.
+    """
+    from langchain_core.documents import Document
+    from backend.rag.text_splitter import split_documents
+
+    persist_dir = os.path.join(root_dir, "data", "chroma_db", restaurant_id)
+    db = load_vector_store(restaurant_id, persist_dir)
+
+    # Create LangChain Document
+    metadata = {
+        "source": title,
+        "document_id": str(doc_id),
+        "restaurant_id": restaurant_id,
+        "document_type": document_type
+    }
+    raw_doc = Document(page_content=content, metadata=metadata)
+
+    # Chunk the document
+    chunks = split_documents([raw_doc])
+
+    # Generate unique IDs for each chunk
+    chunk_ids = [f"{doc_id}_chunk_{idx}" for idx in range(len(chunks))]
+
+    # Add chunks to Chroma
+    if chunks:
+        db.add_documents(chunks, ids=chunk_ids)
+
+def delete_document_from_vector_store(restaurant_id: str, doc_id: str) -> None:
+    """
+    Deletes all vector store chunks associated with the given document ID.
+    """
+    persist_dir = os.path.join(root_dir, "data", "chroma_db", restaurant_id)
+    if not os.path.exists(persist_dir):
+        return
+        
+    db = load_vector_store(restaurant_id, persist_dir)
+    
+    # Query for chunk IDs matching the document_id metadata
+    result = db.get(where={"document_id": str(doc_id)})
+    existing_ids = result.get("ids", [])
+    
+    if existing_ids:
+        db.delete(ids=existing_ids)
+
+def sync_restaurant_knowledge_base(db_session, restaurant_id: str) -> None:
+    """
+    Performs a full rebuild of the restaurant's ChromaDB collection.
+    Loads all active KnowledgeDocuments from the database, chunks and embeds them.
+    """
+    from backend.repositories.knowledge_repository import KnowledgeRepository
+    from langchain_core.documents import Document
+    from backend.rag.text_splitter import split_documents
+    
+    persist_dir = os.path.join(root_dir, "data", "chroma_db", restaurant_id)
+    db = load_vector_store(restaurant_id, persist_dir)
+    
+    # Clear all existing documents from Chroma collection using delete
+    result = db.get()
+    existing_ids = result.get("ids", [])
+    if existing_ids:
+        db.delete(ids=existing_ids)
+        
+    # Fetch all active documents for this restaurant from SQL
+    db_docs = KnowledgeRepository.list_by_restaurant(db_session, restaurant_id)
+    if not db_docs:
+        return
+        
+    # Convert db models to LangChain Documents
+    langchain_docs = []
+    for db_doc in db_docs:
+        metadata = {
+            "source": db_doc.title,
+            "document_id": str(db_doc.id),
+            "restaurant_id": restaurant_id,
+            "document_type": db_doc.document_type
+        }
+        langchain_docs.append(Document(page_content=db_doc.content, metadata=metadata))
+        
+    # Chunk all documents
+    chunks = split_documents(langchain_docs)
+    if not chunks:
+        return
+        
+    # Generate IDs and add to store
+    chunk_ids = []
+    doc_chunk_counters = {}
+    for chunk in chunks:
+        doc_id = chunk.metadata["document_id"]
+        idx = doc_chunk_counters.get(doc_id, 0)
+        chunk_ids.append(f"{doc_id}_chunk_{idx}")
+        doc_chunk_counters[doc_id] = idx + 1
+        
+    db.add_documents(chunks, ids=chunk_ids)
+
+
 if __name__ == "__main__":
     test_restaurant_id = "Restaurant_A"
     test_data_dir = os.path.join(root_dir, "data", test_restaurant_id)
