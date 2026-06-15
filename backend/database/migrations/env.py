@@ -16,7 +16,7 @@ if project_root not in sys.path:
 
 from backend.core.config import Config
 from backend.database.database import Base
-from backend.models.user import User  # Ensure User model is loaded into Base.metadata
+from backend.models import User, Restaurant  # Ensure all models are loaded into Base.metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

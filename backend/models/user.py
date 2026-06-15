@@ -1,6 +1,7 @@
 import enum
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.database.database import Base
 
@@ -27,3 +28,8 @@ class User(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now(), nullable=False)
+
+    # Multi-Tenant Mapping: Reference to Restaurant Tenant
+    restaurant_id = Column(String(36), ForeignKey("restaurants.id"), nullable=True)
+    restaurant = relationship("Restaurant", back_populates="users")
+

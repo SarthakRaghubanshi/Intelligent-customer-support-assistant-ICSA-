@@ -32,7 +32,8 @@ class UserRepository:
         password_raw: str, 
         role: UserRole = UserRole.CUSTOMER,
         first_name: Optional[str] = None, 
-        last_name: Optional[str] = None
+        last_name: Optional[str] = None,
+        restaurant_id: Optional[str] = None
     ) -> User:
         """
         Creates a new User, hashing the raw password before persistence.
@@ -43,7 +44,8 @@ class UserRepository:
             hashed_password=hashed,
             role=role,
             first_name=first_name,
-            last_name=last_name
+            last_name=last_name,
+            restaurant_id=restaurant_id
         )
         db.add(db_user)
         db.commit()
