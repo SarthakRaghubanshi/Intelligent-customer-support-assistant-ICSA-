@@ -30,16 +30,20 @@ def render_sidebar():
         # Navigation controls using Streamlit automatic state binding
         st.markdown("### 🧭 Navigation")
         
-        from utils.auth_helper import has_permission
+        user = st.session_state.get("user", {})
+        role = str(user.get("role", "customer")).strip().lower()
         
-        nav_options = ["💬 Chat Assistant"]
-        if has_permission("analytics:read_own"):
-            nav_options.append("📊 Analytics Dashboard")
+        if role == "admin":
+            nav_options = ["⚙️ Admin Dashboard"]
+        elif role == "restaurant":
+            nav_options = ["📊 Restaurant Dashboard"]
+        else:
+            nav_options = ["💬 Customer Dashboard"]
             
         # Normalize active_view state if current value is restricted
-        current_view = st.session_state.get("active_view", "💬 Chat Assistant")
+        current_view = st.session_state.get("active_view")
         if current_view not in nav_options:
-            st.session_state.active_view = "💬 Chat Assistant"
+            st.session_state.active_view = nav_options[0]
 
         st.selectbox(
             "Go to Page:",
@@ -49,41 +53,43 @@ def render_sidebar():
         
         st.markdown("<br/>", unsafe_allow_html=True)
         
-        # Restaurant Context Configurator
-        st.markdown("### 🍔 Context Settings")
-        active_view = st.session_state.get("active_view", "💬 Chat Assistant")
-        if active_view == "📊 Analytics Dashboard":
+        # Conditionally display Context Settings and Simulator Controls based on role
+        if role == "admin":
+            st.markdown("### 🍔 Context Settings")
             restaurant_options = ["All Restaurants", "Restaurant_A", "Restaurant_B", "Restaurant_C"]
-        else:
-            restaurant_options = ["Restaurant_A", "Restaurant_B", "Restaurant_C"]
-
-        if st.session_state.selected_restaurant not in restaurant_options:
+            if st.session_state.get("selected_restaurant") not in restaurant_options:
+                st.session_state.selected_restaurant = "Restaurant_A"
+            st.session_state.selected_restaurant = st.selectbox(
+                "Active Restaurant Context:",
+                options=restaurant_options,
+                index=restaurant_options.index(st.session_state.selected_restaurant),
+                help="Sets the active restaurant context for support queries and analytics."
+            )
+            st.markdown("<br/>", unsafe_allow_html=True)
+            
+            st.markdown("### ⚙️ Simulator Controls")
+            st.session_state.typing_speed = st.slider(
+                "Typing Simulation Speed (s):",
+                min_value=0.00,
+                max_value=0.10,
+                value=st.session_state.get("typing_speed", 0.02),
+                step=0.01,
+                help="Controls typing simulation delay for the chatbot's response."
+            )
+            st.markdown("<br/>", unsafe_allow_html=True)
+            
+        elif role == "restaurant":
+            st.markdown("### 🍔 Context Settings")
+            restaurant_options = ["Restaurant_A"]
             st.session_state.selected_restaurant = "Restaurant_A"
+            st.selectbox(
+                "Active Restaurant Context:",
+                options=restaurant_options,
+                disabled=True,
+                help="Locked to assigned restaurant context."
+            )
+            st.markdown("<br/>", unsafe_allow_html=True)
 
-        # Update session state based on select box
-        st.session_state.selected_restaurant = st.selectbox(
-            "Active Restaurant Context:",
-            options=restaurant_options,
-            index=restaurant_options.index(st.session_state.selected_restaurant),
-            help="Sets the active restaurant context for support queries and analytics."
-        )
-        
-        st.markdown("<br/>", unsafe_allow_html=True)
-        
-        # Simulator Settings
-        st.markdown("### ⚙️ Simulator Controls")
-        
-        # Adjustable typing speed delay
-        st.session_state.typing_speed = st.slider(
-            "Typing Simulation Speed (s):",
-            min_value=0.00,
-            max_value=0.10,
-            value=st.session_state.typing_speed,
-            step=0.01,
-            help="Controls typing simulation delay for the chatbot's response."
-        )
-        
-        st.markdown("<br/>", unsafe_allow_html=True)
         
         # Clear Chat Button
         st.button(

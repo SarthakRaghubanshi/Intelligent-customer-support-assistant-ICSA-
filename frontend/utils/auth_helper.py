@@ -40,11 +40,25 @@ def login_user(email: str, password_raw: str) -> Tuple[bool, str]:
             "first_name": user.first_name,
             "last_name": user.last_name
         }
+        
+        # Initialize default view based on role
+        init_landing_view(user.role.value)
         return True, "Login successful"
     except Exception as e:
         return False, str(e)
     finally:
         db.close()
+
+def init_landing_view(role: str):
+    """Initializes the landing view in session state based on user role."""
+    role_normalized = str(role).strip().lower()
+    if role_normalized == "admin":
+        st.session_state.active_view = "⚙️ Admin Dashboard"
+    elif role_normalized == "restaurant":
+        st.session_state.active_view = "📊 Restaurant Dashboard"
+    else:
+        st.session_state.active_view = "💬 Customer Dashboard"
+
 
 def register_user(
     email: str, 
@@ -97,6 +111,11 @@ def check_auth() -> bool:
         try:
             # Cryptographically check if token signature is still valid
             AuthService.validate_access_token(st.session_state.access_token)
+            
+            # Ensure active_view is initialized
+            if "active_view" not in st.session_state or st.session_state.active_view is None:
+                init_landing_view(st.session_state.user.get("role"))
+                
             return True
         except Exception:
             # Token signature has expired or was tampered with
