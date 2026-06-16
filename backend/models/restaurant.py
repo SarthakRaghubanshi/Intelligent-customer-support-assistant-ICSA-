@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean, DateTime, JSON, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.database.database import Base
@@ -12,6 +12,13 @@ class Restaurant(Base):
     phone = Column(String(50), nullable=True)
     address = Column(String(255), nullable=True)
     description = Column(String(500), nullable=True)
+    
+    # New Profile operational fields
+    contact_email = Column(String(255), nullable=True)
+    business_hours = Column(JSON, nullable=True)
+    delivery_available = Column(Boolean, default=True, server_default=text('1'), nullable=False)
+    delivery_notes = Column(String(500), nullable=True)
+    status_message = Column(String(255), nullable=True)
     
     is_active = Column(Boolean, default=True, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)

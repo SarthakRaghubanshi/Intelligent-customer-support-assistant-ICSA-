@@ -83,3 +83,17 @@ class RestaurantRepository:
         return db.query(Restaurant).filter(
             Restaurant.deleted_at.is_(None)
         ).all()
+
+    @staticmethod
+    def get_profile(db: Session, restaurant_id: str) -> Optional[Restaurant]:
+        """
+        Retrieves the profile of an active, non-soft-deleted restaurant.
+        """
+        return RestaurantRepository.get_by_id(db, restaurant_id)
+
+    @staticmethod
+    def update_profile(db: Session, restaurant_id: str, profile_dict: Dict[str, Any]) -> Optional[Restaurant]:
+        """
+        Updates the profile of an active, non-soft-deleted restaurant.
+        """
+        return RestaurantRepository.update(db, restaurant_id, profile_dict)

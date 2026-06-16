@@ -3,6 +3,7 @@ import pandas as pd
 from backend.database.database import get_db
 from backend.services.analytics_service import AnalyticsService
 from backend.services.knowledge_service import KnowledgeService
+from backend.services.restaurant_service import RestaurantService
 from backend.core.document_types import DOCUMENT_TYPES
 
 def render_restaurant_dashboard():
@@ -32,7 +33,7 @@ def render_restaurant_dashboard():
     st.markdown("<br/>", unsafe_allow_html=True)
 
     # Tabs layout for separation of concerns
-    tab_insights, tab_kb = st.tabs(["📊 Performance Insights", "📚 Knowledge Base"])
+    tab_insights, tab_kb, tab_profile = st.tabs(["📊 Performance Insights", "📚 Knowledge Base", "🏪 Restaurant Profile"])
 
     db_gen = get_db()
     db = next(db_gen)
@@ -189,6 +190,83 @@ def render_restaurant_dashboard():
                                         st.rerun()
                                     except Exception as err:
                                         st.error(f"Failed to delete document: {str(err)}")
+            # ==========================================
+            # TAB 3: RESTAURANT PROFILE
+            # ==========================================
+            with tab_profile:
+                st.markdown("### 🏪 Restaurant Profile Configuration")
+                try:
+                    profile = RestaurantService.get_profile(db, token, restaurant_id)
+                    
+                    # Verify editing capabilities
+                    can_edit = (role_name == "restaurant" or role_name == "admin")
+                    disabled = not can_edit
+                    
+                    if disabled:
+                        st.info("ℹ️ Profile fields are read-only for customer roles.")
+
+                    with st.form(f"edit_profile_form_{restaurant_id}"):
+                        prof_name = st.text_input("Restaurant Name:", value=profile.name, disabled=disabled)
+                        prof_desc = st.text_area("Description:", value=profile.description or "", disabled=disabled)
+                        prof_phone = st.text_input("Phone Number:", value=profile.phone or "", disabled=disabled)
+                        prof_address = st.text_input("Address:", value=profile.address or "", disabled=disabled)
+                        prof_email = st.text_input("Contact Email:", value=profile.contact_email or "", disabled=disabled)
+                        prof_status = st.text_input("Status Message:", value=profile.status_message or "", placeholder="e.g. Open Today", disabled=disabled)
+                        
+                        st.markdown("---")
+                        st.markdown("#### 🚚 Delivery Settings")
+                        prof_delivery_avail = st.checkbox("Delivery Available?", value=profile.delivery_available, disabled=disabled)
+                        prof_delivery_notes = st.text_area("Delivery Notes / Instructions:", value=profile.delivery_notes or "", disabled=disabled)
+                        
+                        st.markdown("---")
+                        st.markdown("#### 🕒 Operational Business Hours")
+                        
+                        hours_data = profile.business_hours or {}
+                        days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                        new_hours = {}
+                        
+                        for day in days:
+                            day_record = hours_data.get(day) or {}
+                            
+                            col_day, col_open, col_close, col_closed = st.columns([1.5, 2.5, 2.5, 1.5])
+                            with col_day:
+                                st.markdown(f"<div style='margin-top: 25px; font-weight: bold;'>{day}</div>", unsafe_allow_html=True)
+                            with col_closed:
+                                day_closed = st.checkbox("Closed", value=day_record.get("closed", False), key=f"closed_{day}", disabled=disabled)
+                            with col_open:
+                                day_open = st.text_input("Open (HH:MM):", value=day_record.get("open") or "09:00", key=f"open_{day}", disabled=disabled or day_closed)
+                            with col_close:
+                                day_close = st.text_input("Close (HH:MM):", value=day_record.get("close") or "22:00", key=f"close_{day}", disabled=disabled or day_closed)
+                            
+                            new_hours[day] = {
+                                "open": None if day_closed else day_open,
+                                "close": None if day_closed else day_close,
+                                "closed": day_closed
+                            }
+
+                        st.markdown("<br/>", unsafe_allow_html=True)
+                        submit_profile = st.form_submit_button("💾 Save Profile Changes", disabled=disabled)
+                        
+                        if submit_profile:
+                            try:
+                                update_data = {
+                                    "name": prof_name,
+                                    "description": prof_desc,
+                                    "phone": prof_phone,
+                                    "address": prof_address,
+                                    "contact_email": prof_email,
+                                    "business_hours": new_hours,
+                                    "delivery_available": prof_delivery_avail,
+                                    "delivery_notes": prof_delivery_notes,
+                                    "status_message": prof_status
+                                }
+                                RestaurantService.update_profile(db, token, restaurant_id, update_data)
+                                st.success("✓ Restaurant Profile successfully updated!")
+                                st.rerun()
+                            except Exception as err:
+                                st.error(f"Failed to update profile: {str(err)}")
+                except Exception as err:
+                    st.error(f"Failed to load profile details: {str(err)}")
             
     except Exception as e:
         st.error(f"Failed to load dashboard data: {str(e)}")
@@ -200,9 +278,9 @@ def render_restaurant_dashboard():
         """
         <div style='text-align: center; margin-top: 1rem;'>
             <div style='background-color: rgba(15, 23, 42, 0.4); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); display: inline-block;'>
-                <h4 style='margin: 0; color: #10B981; font-weight: 600;'>🍔 Restaurant Tools Coming Soon</h4>
+                <h4 style='margin: 0; color: #10B981; font-weight: 600;'>🏪 Restaurant Tools Active</h4>
                 <p style='margin: 8px 0 0 0; color: rgba(248, 250, 252, 0.5); font-size: 0.85rem;'>
-                    Profile settings, RAG knowledge bases, and restaurant analytics tools are under preparation.
+                    Profile settings, RAG knowledge bases, and restaurant analytics tools are ready for customer support workflows.
                 </p>
             </div>
         </div>
