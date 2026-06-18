@@ -23,11 +23,11 @@ def initialize_restaurant_conversation(restaurant_id: str, restaurant_name: str)
 
 def process_chat_message(db, restaurant_id: str, question: str) -> dict:
     """
-    Lightweight boundary between the presentation layer and K4 RAGService.
+    Lightweight boundary between the presentation layer and ConversationOrchestrator.
     Avoids direct LLM calling or custom route bypassing.
     """
-    from backend.rag.rag_service import RAGService
-    return RAGService.answer_question(db, restaurant_id, question)
+    from backend.services.conversation_orchestrator import ConversationOrchestrator
+    return ConversationOrchestrator.orchestrate(db, restaurant_id, question)
 
 def render_customer_dashboard():
     """
@@ -129,11 +129,15 @@ def render_customer_dashboard():
                          message_placeholder.markdown(full_response + "▌")
                      message_placeholder.markdown(answer_text)
 
-                     # Append assistant message with sources and timestamp
+                     # Append assistant message with UI-facing fields and timestamp
                      st.session_state.messages.append({
                          "role": "assistant",
                          "content": answer_text,
                          "sources": response_sources,
+                         "intent": response.get("intent"),
+                         "sentiment": response.get("sentiment"),
+                         "language": response.get("language"),
+                         "escalated": response.get("escalation_result", {}).get("escalate", False) if isinstance(response.get("escalation_result"), dict) else False,
                          "timestamp": datetime.utcnow().isoformat()
                      })
                      

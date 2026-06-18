@@ -11,6 +11,27 @@ parent_dir = os.path.dirname(current_file_dir)
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
+# Setup isolated test database path
+test_db_path = os.path.join(parent_dir, "data", "test_language_integration.db")
+os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
+
+# Clean test db file if it already exists
+if os.path.exists(test_db_path):
+    try:
+        os.remove(test_db_path)
+    except Exception:
+        pass
+
+from tests.utils.test_bootstrap import bootstrap_test_database, bootstrap_default_test_data
+
+# Bootstrap the test database and seed Restaurant_A
+SessionLocalTest = bootstrap_test_database(os.environ["DATABASE_URL"])
+db = SessionLocalTest()
+try:
+    bootstrap_default_test_data(db)
+finally:
+    db.close()
+
 # Import the service function
 from backend.gemini_service import generate_response
 
@@ -153,8 +174,16 @@ if __name__ == "__main__":
     print("RUNNING LANGUAGE INTEGRATION VERIFICATION SUITE")
     print("=" * 80)
     
-    for q, fail_mock in test_queries:
-        run_test_case(q, fail_mock)
+    try:
+        for q, fail_mock in test_queries:
+            run_test_case(q, fail_mock)
+    finally:
+        # Clean up database files and folder
+        if os.path.exists(test_db_path):
+            try:
+                os.remove(test_db_path)
+            except Exception:
+                pass
         
     print("=" * 80)
     print("VERIFICATION SUITE COMPLETED")

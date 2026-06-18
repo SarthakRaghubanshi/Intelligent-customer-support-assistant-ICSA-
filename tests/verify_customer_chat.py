@@ -15,9 +15,14 @@ os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
 
 # Clean test db file if it already exists
 if os.path.exists(test_db_path):
-    os.remove(test_db_path)
+    try:
+        os.remove(test_db_path)
+    except Exception:
+        pass
 
-from backend.database.database import engine, Base, SessionLocal
+from tests.utils.test_bootstrap import bootstrap_test_database
+SessionLocalTest = bootstrap_test_database(os.environ["DATABASE_URL"])
+
 from backend.repositories.restaurant_repository import RestaurantRepository
 from backend.repositories.user_repository import UserRepository
 from backend.models.user import UserRole
@@ -54,8 +59,7 @@ def run_chat_ui_tests():
 
     # 1. Initialize test database
     print("Initializing test database tables...")
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    db = SessionLocalTest()
 
     try:
         # Create test restaurants
@@ -137,20 +141,24 @@ def run_chat_ui_tests():
         # =====================================================================
         print("\n4. Testing process_chat_message() orchestration bridge...")
         
-        mock_rag_response = {
+        mock_orch_response = {
             "answer": "This is a mock RAG answer for test verification.",
             "sources": [{"document_id": "doc-123", "title": "Beta Menu", "document_type": "menu"}],
-            "chunks_used": 1
+            "chunks_used": 1,
+            "intent": "Menu Inquiry",
+            "sentiment": "Neutral",
+            "language": "English",
+            "escalation_result": {"escalate": False, "reason": "No Escalation Required"}
         }
 
-        # Mock RAGService.answer_question to assert UI-backend delegation
-        with mock.patch("backend.rag.rag_service.RAGService.answer_question", return_value=mock_rag_response) as mock_answer:
+        # Mock ConversationOrchestrator.orchestrate to assert UI-backend delegation
+        with mock.patch("backend.services.conversation_orchestrator.ConversationOrchestrator.orchestrate", return_value=mock_orch_response) as mock_orch:
             res = process_chat_message(db, restaurant_b.id, "Do you have gluten free buns?")
             
-            # Assert process_chat_message delegates directly to RAGService
-            mock_answer.assert_called_once_with(db, restaurant_b.id, "Do you have gluten free buns?")
-            assert res == mock_mock_response if 'mock_mock_response' in locals() else mock_rag_response
-            print("✓ process_chat_message() delegates correctly to RAGService.answer_question.")
+            # Assert process_chat_message delegates directly to ConversationOrchestrator
+            mock_orch.assert_called_once_with(db, restaurant_b.id, "Do you have gluten free buns?")
+            assert res == mock_orch_response
+            print("✓ process_chat_message() delegates correctly to ConversationOrchestrator.orchestrate.")
 
         # =====================================================================
         # TEST 5: Message Timestamps & Source Preservation Contracts
@@ -170,8 +178,8 @@ def run_chat_ui_tests():
         # Simulate assistant response save contract
         assistant_msg = {
             "role": "assistant",
-            "content": mock_rag_response["answer"],
-            "sources": mock_rag_response["sources"],
+            "content": mock_orch_response["answer"],
+            "sources": mock_orch_response["sources"],
             "timestamp": datetime.utcnow().isoformat()
         }
         mock_state.messages.append(assistant_msg)

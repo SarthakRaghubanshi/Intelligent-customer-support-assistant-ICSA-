@@ -14,7 +14,7 @@ if backend_dir not in sys.path:
     sys.path.append(backend_dir)
 
 # Consume the existing Gemini service state (genai client reference and pre-resolved API key)
-from backend.gemini_service import genai, GEMINI_API_KEY
+# Removed top-level import to prevent circular dependencies.
 
 SPANISH_KEYWORDS = {'hola', 'gracias', 'buenos', 'dias', 'como', 'estas', 'por', 'favor', 'buen', 'dia', 'adios'}
 FRENCH_KEYWORDS = {'bonjour', 'merci', "s'il", 'vous', 'plait', 'comment', 'allez', 'ca', 'va', 'salut'}
@@ -133,6 +133,7 @@ def classify_language_gemini(query: str) -> Dict[str, Any]:
     Sends the user message to Gemini API as fallback (Layer 2)
     to classify into English, Hindi, Spanish, French, German, or Unknown.
     """
+    from backend.gemini_service import genai, GEMINI_API_KEY
     if not GEMINI_API_KEY:
         return {
             "language": "Unknown",

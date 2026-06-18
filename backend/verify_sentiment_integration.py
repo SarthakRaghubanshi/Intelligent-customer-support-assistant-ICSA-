@@ -8,6 +8,7 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 from backend.gemini_service import generate_response
+from tests.utils import test_bootstrap
 from backend.rag.prompt_builder import build_rag_prompt
 from backend.rag.retriever import retrieve_relevant_chunks
 

@@ -8,6 +8,27 @@ project_root = os.path.dirname(current_file_dir)
 if project_root not in sys.path:
     sys.path.append(project_root)
 
+# Setup isolated test database path
+test_db_path = os.path.join(project_root, "data", "test_escalation_end_to_end.db")
+os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
+
+# Clean test db file if it already exists
+if os.path.exists(test_db_path):
+    try:
+        os.remove(test_db_path)
+    except Exception:
+        pass
+
+from tests.utils.test_bootstrap import bootstrap_test_database, bootstrap_default_test_data
+
+# Bootstrap the test database and seed Restaurant_A
+SessionLocalTest = bootstrap_test_database(os.environ["DATABASE_URL"])
+db = SessionLocalTest()
+try:
+    bootstrap_default_test_data(db)
+finally:
+    db.close()
+
 from backend.gemini_service import generate_response
 from backend.analytics.session_analytics import reset_session_analytics, get_session_analytics
 
@@ -69,7 +90,8 @@ def run_end_to_end_tests():
             query_fallback_esc = "I demand to speak to a manager about a completely different restaurant."
             
             # Mock retrieve_relevant_chunks to return empty list, forcing RAG threshold fallback
-            with mock.patch("backend.gemini_service.retrieve_relevant_chunks", return_value=[]):
+            # Mock retrieve_relevant_chunks_with_metadata to return empty list, forcing RAG threshold fallback
+            with mock.patch("backend.rag.rag_service.retrieve_relevant_chunks_with_metadata", return_value=[]):
                 res_fallback_esc = generate_response(query_fallback_esc, return_dict=True)
             
             print(f"    Returned Type: {type(res_fallback_esc).__name__}")
@@ -131,6 +153,12 @@ def run_end_to_end_tests():
     except Exception as e:
         print(f"\n❌ TEST SUITE ENCOUNTERED EXCEPTION: {str(e)}")
         passed_all = False
+    finally:
+        if os.path.exists(test_db_path):
+            try:
+                os.remove(test_db_path)
+            except Exception:
+                pass
 
     print("\n" + "=" * 80)
     if passed_all:

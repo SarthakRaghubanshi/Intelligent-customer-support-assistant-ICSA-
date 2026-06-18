@@ -17,6 +17,7 @@ if os.path.exists(test_db_path):
     os.remove(test_db_path)
 
 from backend.database.database import engine, Base, SessionLocal
+from tests.utils import test_bootstrap
 from backend.repositories.restaurant_repository import RestaurantRepository
 from backend.rag.embedder import GeminiEmbedder
 from backend.rag.vector_store import load_vector_store, create_vector_store

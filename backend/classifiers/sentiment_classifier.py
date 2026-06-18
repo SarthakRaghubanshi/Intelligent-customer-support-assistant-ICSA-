@@ -14,7 +14,7 @@ if backend_dir not in sys.path:
     sys.path.append(backend_dir)
 
 # Consume the existing Gemini service state (genai client reference and pre-resolved API key)
-from backend.gemini_service import genai, GEMINI_API_KEY
+# Removed top-level import to prevent circular dependencies.
 
 SENTIMENT_CONFIDENCE_MAP = {
     "Positive": 0.99,
@@ -85,6 +85,7 @@ def classify_sentiment_gemini(query: str) -> Dict[str, Any]:
     Sends the user message to Gemini API as fallback (Layer 2)
     to classify into Positive, Neutral, or Negative in structured JSON.
     """
+    from backend.gemini_service import genai, GEMINI_API_KEY
     if not GEMINI_API_KEY:
         return {"sentiment": "Neutral", "confidence": 0.0, "layer": "Gemini-Based (Fallback - Missing Key)"}
 

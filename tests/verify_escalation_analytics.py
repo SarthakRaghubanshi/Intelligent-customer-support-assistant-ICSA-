@@ -8,6 +8,27 @@ project_root = os.path.dirname(current_file_dir)
 if project_root not in sys.path:
     sys.path.append(project_root)
 
+# Setup isolated test database path
+test_db_path = os.path.join(project_root, "data", "test_escalation_analytics.db")
+os.environ["DATABASE_URL"] = f"sqlite:///{test_db_path}"
+
+# Clean test db file if it already exists
+if os.path.exists(test_db_path):
+    try:
+        os.remove(test_db_path)
+    except Exception:
+        pass
+
+from tests.utils.test_bootstrap import bootstrap_test_database, bootstrap_default_test_data
+
+# Bootstrap the test database and seed Restaurant_A
+SessionLocalTest = bootstrap_test_database(os.environ["DATABASE_URL"])
+db = SessionLocalTest()
+try:
+    bootstrap_default_test_data(db)
+finally:
+    db.close()
+
 from backend.gemini_service import generate_response
 from backend.analytics.event_logger import create_event
 from backend.analytics.session_analytics import reset_session_analytics, get_session_analytics
