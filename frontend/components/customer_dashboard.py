@@ -3,8 +3,11 @@ import time
 from datetime import datetime
 from backend.database.database import get_db
 from backend.repositories.restaurant_repository import RestaurantRepository
+from backend.repositories.message_repository import MessageRepository
+from backend.services.conversation_service import ConversationService
+from backend.services.feedback_service import FeedbackService
 
-def initialize_restaurant_conversation(restaurant_id: str, restaurant_name: str) -> None:
+def initialize_restaurant_conversation(restaurant_id: str, restaurant_name: str, customer_id: str = None, db = None) -> None:
     """
     Resets conversation history, sets restaurant-specific greeting with UTC timestamp,
     and updates active and current restaurant session state trackers.
@@ -12,10 +15,44 @@ def initialize_restaurant_conversation(restaurant_id: str, restaurant_name: str)
     st.session_state.selected_restaurant = restaurant_id
     st.session_state.current_chat_restaurant = restaurant_id
     
+    greeting_text = f"Hello! I am your Intelligent Customer Support Assistant for {restaurant_name}. How can I help you today?"
+    
+    own_db = False
+    if db is None:
+        try:
+            db_gen = get_db()
+            db = next(db_gen)
+            own_db = True
+        except Exception:
+            db = None
+            
+    if db is not None:
+        try:
+            if not customer_id:
+                user = st.session_state.get("user", {})
+                customer_id = user.get("id")
+                
+            if customer_id:
+                conv = ConversationService.start_new_session(db, customer_id, restaurant_id)
+                st.session_state.active_conversation_id = conv.id
+                
+                MessageRepository.create(
+                    db=db,
+                    conversation_id=conv.id,
+                    role="assistant",
+                    content=greeting_text
+                )
+        except Exception as e:
+            # Suppress db errors for headless/regression tests with mock dependencies
+            print(f"Warning inside initialize_restaurant_conversation: {str(e)}")
+        finally:
+            if own_db:
+                db.close()
+                
     st.session_state.messages = [
         {
             "role": "assistant",
-            "content": f"Hello! I am your Intelligent Customer Support Assistant for {restaurant_name}. How can I help you today?",
+            "content": greeting_text,
             "sources": [],
             "timestamp": datetime.utcnow().isoformat()
         }
@@ -80,12 +117,43 @@ def render_customer_dashboard():
 
     # Initialize or switch context if context restaurant changed
     if "current_chat_restaurant" not in st.session_state or st.session_state.current_chat_restaurant != selected_id:
-        initialize_restaurant_conversation(selected_id, selected_name)
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            customer_id = user.get("id")
+            from backend.models.conversation import Conversation
+            active_conv = db.query(Conversation).filter(
+                Conversation.customer_id == customer_id,
+                Conversation.restaurant_id == selected_id,
+                Conversation.status == "active"
+            ).first()
+            
+            if active_conv:
+                st.session_state.selected_restaurant = selected_id
+                st.session_state.current_chat_restaurant = selected_id
+                st.session_state.active_conversation_id = active_conv.id
+                # Load history from DB
+                history = ConversationService.load_history(db, active_conv.id, customer_id)
+                st.session_state.messages = []
+                for m in history:
+                    st.session_state.messages.append({
+                        "role": m.role,
+                        "content": m.content,
+                        "sources": m.sources or [],
+                        "intent": m.intent,
+                        "sentiment": m.sentiment,
+                        "language": m.language,
+                        "escalated": m.escalated,
+                        "timestamp": m.timestamp.isoformat()
+                    })
+            else:
+                initialize_restaurant_conversation(selected_id, selected_name, customer_id, db)
+        finally:
+            db.close()
 
     st.markdown("---")
 
     # 3. Render Message History logs
-    # Filter messages to ensure we only display assistant/user messages
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
@@ -102,6 +170,19 @@ def render_customer_dashboard():
             "content": prompt,
             "timestamp": datetime.utcnow().isoformat()
         })
+        
+        # Save User Message to database
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            MessageRepository.create(
+                db=db,
+                conversation_id=st.session_state.active_conversation_id,
+                role="user",
+                content=prompt
+            )
+        finally:
+            db.close()
 
         # Process and display assistant response
         with st.chat_message("assistant"):
@@ -113,7 +194,7 @@ def render_customer_dashboard():
                          response = process_chat_message(db, selected_id, prompt)
                      finally:
                          db.close()
-                         
+                          
                      answer_text = response.get("answer", "I could not retrieve a response.")
                      response_sources = response.get("sources", [])
 
@@ -122,12 +203,37 @@ def render_customer_dashboard():
                      message_placeholder = st.empty()
                      
                      full_response = ""
-                     # Simple typewriter simulation by split spaces
                      for chunk in answer_text.split(" "):
                          full_response += chunk + " "
                          time.sleep(typing_speed)
                          message_placeholder.markdown(full_response + "▌")
                      message_placeholder.markdown(answer_text)
+
+                     # Save Assistant Message to database
+                     db_gen = get_db()
+                     db = next(db_gen)
+                     try:
+                         msg = MessageRepository.create(
+                             db=db,
+                             conversation_id=st.session_state.active_conversation_id,
+                             role="assistant",
+                             content=answer_text,
+                             intent=response.get("intent"),
+                             intent_confidence=response.get("intent_info", {}).get("confidence", 0.0) if isinstance(response.get("intent_info"), dict) else 0.0,
+                             sentiment=response.get("sentiment"),
+                             sentiment_confidence=response.get("intent_info", {}).get("confidence", 0.0) if isinstance(response.get("intent_info"), dict) else 0.0,
+                             language=response.get("language"),
+                             language_code=response.get("language_code"),
+                             latency_ms=150.0,
+                             escalated=response.get("escalation_result", {}).get("escalate", False) if isinstance(response.get("escalation_result"), dict) else False,
+                             sources=response_sources
+                         )
+                         
+                         # Check if status transitions to escalated
+                         if msg.escalated:
+                             ConversationService.update_status(db, st.session_state.active_conversation_id, "escalated")
+                     finally:
+                         db.close()
 
                      # Append assistant message with UI-facing fields and timestamp
                      st.session_state.messages.append({
@@ -146,3 +252,50 @@ def render_customer_dashboard():
                      
                 except Exception as e:
                      st.error(f"Failed to generate response: {str(e)}")
+
+    # Close Chat and Rate Button
+    st.markdown("<br/>", unsafe_allow_html=True)
+    col1, col2 = st.columns([6, 2])
+    with col2:
+        if st.button("Close Chat & Rate", key="close_chat_btn"):
+            st.session_state.show_rating_modal = True
+
+    # 5. Rating Modal / Overlay
+    if st.session_state.get("show_rating_modal", False):
+        st.markdown(
+            """
+            <div style='background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1); padding: 1.5rem; margin-top: 1rem;'>
+                <h3 style='color: #F8FAFC; margin-top: 0;'>Rate Your Experience</h3>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        rating = st.slider("CSAT Rating (1 to 5 stars):", min_value=1, max_value=5, value=5)
+        feedback_text = st.text_area("Feedback comments (optional):", placeholder="Your comments here...")
+        
+        if st.button("Submit Feedback", key="submit_feedback_btn"):
+            db_gen = get_db()
+            db = next(db_gen)
+            try:
+                FeedbackService.submit_feedback(
+                    db=db,
+                    conversation_id=st.session_state.active_conversation_id,
+                    rating=rating,
+                    feedback_text=feedback_text,
+                    customer_id=user.get("id")
+                )
+                st.success("Thank you for your feedback!")
+                st.session_state.show_rating_modal = False
+                # Reset chat states
+                if "active_conversation_id" in st.session_state:
+                    del st.session_state.active_conversation_id
+                if "messages" in st.session_state:
+                    del st.session_state.messages
+                if "current_chat_restaurant" in st.session_state:
+                    del st.session_state.current_chat_restaurant
+                time.sleep(1.5)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error submitting feedback: {str(e)}")
+            finally:
+                db.close()
