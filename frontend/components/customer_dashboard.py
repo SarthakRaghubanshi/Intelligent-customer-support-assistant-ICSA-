@@ -58,12 +58,14 @@ def initialize_restaurant_conversation(restaurant_id: str, restaurant_name: str,
         }
     ]
 
-def process_chat_message(db, restaurant_id: str, question: str) -> dict:
+def process_chat_message(db, restaurant_id: str, question: str, conversation_id: str = None) -> dict:
     """
     Lightweight boundary between the presentation layer and ConversationOrchestrator.
     Avoids direct LLM calling or custom route bypassing.
     """
     from backend.services.conversation_orchestrator import ConversationOrchestrator
+    if conversation_id is not None:
+        return ConversationOrchestrator.orchestrate(db, restaurant_id, question, conversation_id=conversation_id)
     return ConversationOrchestrator.orchestrate(db, restaurant_id, question)
 
 def render_customer_dashboard():
@@ -191,7 +193,7 @@ def render_customer_dashboard():
                      db_gen = get_db()
                      db = next(db_gen)
                      try:
-                         response = process_chat_message(db, selected_id, prompt)
+                         response = process_chat_message(db, selected_id, prompt, conversation_id=st.session_state.active_conversation_id)
                      finally:
                          db.close()
                           

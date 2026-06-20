@@ -2,7 +2,7 @@ import os
 import sys
 import time
 import datetime
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Optional
 from sqlalchemy.orm import Session
 
 # Ensure proper project root path imports
@@ -34,7 +34,8 @@ class ConversationOrchestrator:
         question: str,
         intent_classifier: Callable = None,
         sentiment_classifier: Callable = None,
-        language_detector: Callable = None
+        language_detector: Callable = None,
+        conversation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Orchestrates classifiers, rules, RAG, and logs.
@@ -99,7 +100,17 @@ class ConversationOrchestrator:
                 confidence=intent_result["confidence"],
                 query=question
             )
-        except Exception:
+            
+            # Auto-creation hook for Step 10 Escalation Events
+            if escalation_result.get("escalate") and conversation_id:
+                from backend.services.escalation_service import EscalationService
+                EscalationService.create_escalation(
+                    db=db,
+                    conversation_id=conversation_id,
+                    reason=escalation_result.get("reason", "Unknown")
+                )
+        except Exception as e:
+            print(f"Error in escalation evaluation or DB creation: {str(e)}", file=sys.stderr)
             escalation_result = {
                 "escalate": False,
                 "reason": "Escalation Evaluation Failed"

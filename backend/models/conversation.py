@@ -20,3 +20,4 @@ class Conversation(Base):
     customer = relationship("User")
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
     feedback = relationship("CustomerFeedback", back_populates="conversation", uselist=False, cascade="all, delete-orphan")
+    escalation_event = relationship("EscalationEvent", back_populates="conversation", uselist=False, cascade="all, delete-orphan")

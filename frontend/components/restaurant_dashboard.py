@@ -33,7 +33,12 @@ def render_restaurant_dashboard():
     st.markdown("<br/>", unsafe_allow_html=True)
 
     # Tabs layout for separation of concerns
-    tab_insights, tab_kb, tab_profile = st.tabs(["📊 Performance Insights", "📚 Knowledge Base", "🏪 Restaurant Profile"])
+    tab_insights, tab_kb, tab_profile, tab_escalations = st.tabs([
+        "📊 Performance Insights",
+        "📚 Knowledge Base",
+        "🏪 Restaurant Profile",
+        "🚨 Review Center & Escalation Board"
+    ])
 
     db_gen = get_db()
     db = next(db_gen)
@@ -267,7 +272,130 @@ def render_restaurant_dashboard():
                                 st.error(f"Failed to update profile: {str(err)}")
                 except Exception as err:
                     st.error(f"Failed to load profile details: {str(err)}")
-            
+            # ==========================================
+            # TAB 4: REVIEW CENTER & ESCALATION BOARD
+            # ==========================================
+            with tab_escalations:
+                st.markdown("### 🚨 Review Center & Escalation Board")
+                from backend.services.escalation_service import EscalationService
+                from backend.models.user import User, UserRole
+                
+                # Fetch escalations scoped by tenant/role
+                user_obj = User(
+                    id=user.get("id"),
+                    email=user.get("email"),
+                    role=UserRole(user.get("role")),
+                    restaurant_id=restaurant_id
+                )
+                
+                try:
+                    escalations = EscalationService.get_escalations_for_restaurant(db, user_obj)
+                except Exception as e:
+                    st.error(f"Error fetching escalations: {str(e)}")
+                    escalations = []
+                
+                # Filter Panel
+                col_status, col_priority = st.columns(2)
+                with col_status:
+                    filter_status = st.selectbox(
+                        "Filter by Status:",
+                        options=["All", "pending", "claimed", "resolved"]
+                    )
+                with col_priority:
+                    filter_priority = st.selectbox(
+                        "Filter by Priority:",
+                        options=["All", "high", "medium", "low"]
+                    )
+                
+                # Filter items in memory
+                filtered_escalations = escalations
+                if filter_status != "All":
+                    filtered_escalations = [e for e in filtered_escalations if e.status == filter_status]
+                if filter_priority != "All":
+                    filtered_escalations = [e for e in filtered_escalations if e.priority == filter_priority]
+                
+                if not filtered_escalations:
+                    st.info("No escalations match the current filters.")
+                
+                for esc in filtered_escalations:
+                    badge_colors = {
+                        "pending": "#EF4444",   # red
+                        "claimed": "#F59E0B",   # amber
+                        "resolved": "#10B981"   # green
+                    }
+                    badge_color = badge_colors.get(esc.status, "#6B7280")
+                    priority_colors = {
+                        "high": "#EF4444",
+                        "medium": "#F59E0B",
+                        "low": "#6B7280"
+                    }
+                    prio_color = priority_colors.get(esc.priority, "#6B7280")
+                    
+                    header_str = f"Ticket: {esc.reason} | Status: {esc.status.upper()} | Priority: {esc.priority.upper()}"
+                    
+                    with st.expander(header_str):
+                        st.markdown(
+                            f"""
+                            <div style='display: flex; gap: 10px; margin-bottom: 10px;'>
+                                <span style='background-color: {badge_color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;'>{esc.status.upper()}</span>
+                                <span style='background-color: {prio_color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;'>PRIORITY: {esc.priority.upper()}</span>
+                                <span style='color: rgba(255,255,255,0.4); font-size: 0.8rem;'>Created: {esc.created_at.strftime('%Y-%m-%d %H:%M:%S') if esc.created_at else 'N/A'}</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        
+                        # Show Transcript
+                        st.markdown("#### 💬 Conversation Transcript")
+                        try:
+                            messages = EscalationService.get_transcript(db, esc.id, user_obj)
+                            for msg in messages:
+                                role_icon = "👤" if msg.role == "user" else "🤖"
+                                st.markdown(f"**{role_icon} {msg.role.capitalize()}:** {msg.content}")
+                        except Exception as te:
+                            st.error(f"Failed to load transcript: {str(te)}")
+                        
+                        # Add Notes section
+                        st.markdown("---")
+                        st.markdown("#### 📝 Internal Notes")
+                        current_notes = esc.notes or ""
+                        note_input = st.text_area(f"Add/Edit notes for {esc.id[:8]}", value=current_notes, key=f"notes_{esc.id}")
+                        if st.button("Save Notes", key=f"save_notes_btn_{esc.id}"):
+                            try:
+                                EscalationService.add_notes(db, esc.id, user_obj, note_input)
+                                st.success("Notes saved successfully!")
+                                st.rerun()
+                            except Exception as ne:
+                                st.error(f"Failed to save notes: {str(ne)}")
+                                
+                        # Claim / Resolve controls
+                        if esc.status == "pending":
+                            if st.button("🔒 Claim Escalation", key=f"claim_{esc.id}", use_container_width=True):
+                                try:
+                                    EscalationService.claim_escalation(db, esc.id, user_obj)
+                                    st.success("Case successfully claimed!")
+                                    st.rerun()
+                                except Exception as ce:
+                                    st.error(f"Failed to claim: {str(ce)}")
+                        elif esc.status == "claimed":
+                            if esc.assigned_to == user_obj.id:
+                                st.markdown("#### ✅ Resolve Case")
+                                res_summary = st.text_area("Resolution Summary:", placeholder="Provide details about how this case was resolved...", key=f"res_{esc.id}")
+                                if st.button("Resolve case", key=f"resolve_btn_{esc.id}", use_container_width=True):
+                                    if not res_summary.strip():
+                                        st.error("Resolution summary cannot be empty.")
+                                    else:
+                                        try:
+                                            EscalationService.resolve_escalation(db, esc.id, user_obj, res_summary)
+                                            st.success("Case marked as resolved!")
+                                            st.rerun()
+                                        except Exception as re:
+                                            st.error(f"Failed to resolve: {str(re)}")
+                            else:
+                                st.info(f"Assigned to manager with ID: {esc.assigned_to}")
+                        elif esc.status == "resolved":
+                            st.success(f"Resolved by agent ID: {esc.resolved_by} at {esc.resolved_at.strftime('%Y-%m-%d %H:%M:%S') if esc.resolved_at else 'N/A'}")
+                            st.markdown(f"**Resolution Summary:** {esc.resolution_summary or 'None'}")
     except Exception as e:
         st.error(f"Failed to load dashboard data: {str(e)}")
     finally:
