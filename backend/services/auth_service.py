@@ -21,6 +21,9 @@ class AuthService:
         """
         Registers a new user after verifying that the email is not already taken.
         """
+        if role == UserRole.RESTAURANT:
+            raise ValueError("Restaurant Manager registration must use onboarding endpoint with restaurant context.")
+            
         existing_user = UserRepository.get_by_email(db, email)
         if existing_user:
             raise ValueError("Email already registered")

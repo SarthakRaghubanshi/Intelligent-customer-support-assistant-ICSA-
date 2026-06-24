@@ -74,10 +74,12 @@ def register_user(
     password_raw: str, 
     role: UserRole = UserRole.CUSTOMER,
     first_name: str = "",
-    last_name: str = ""
+    last_name: str = "",
+    restaurant_name: str = None,
+    existing_restaurant_id: str = None
 ) -> Tuple[bool, str]:
     """
-    Registers a new user in the database.
+    Registers a new user in the database. Supports restaurant onboarding for managers.
     Returns (Success, Info/Error Message).
     """
     db_gen = get_db()
@@ -87,17 +89,43 @@ def register_user(
         f_name = first_name.strip() or None
         l_name = last_name.strip() or None
         
-        AuthService.register_user(
-            db=db,
-            email=email,
-            password_raw=password_raw,
-            role=role,
-            first_name=f_name,
-            last_name=l_name
-        )
+        if role == UserRole.RESTAURANT:
+            from backend.services.restaurant_service import RestaurantService
+            RestaurantService.onboard_restaurant(
+                db=db,
+                email=email,
+                password_raw=password_raw,
+                first_name=f_name,
+                last_name=l_name,
+                restaurant_name=restaurant_name,
+                existing_restaurant_id=existing_restaurant_id
+            )
+        else:
+            AuthService.register_user(
+                db=db,
+                email=email,
+                password_raw=password_raw,
+                role=role,
+                first_name=f_name,
+                last_name=l_name
+            )
         return True, "Registration successful! You can now log in."
     except Exception as e:
         return False, str(e)
+    finally:
+        db.close()
+
+def list_restaurants() -> list:
+    """
+    Returns a list of all active restaurants in the system.
+    """
+    db_gen = get_db()
+    db = next(db_gen)
+    try:
+        from backend.services.restaurant_service import RestaurantService
+        return RestaurantService.list_active_restaurants(db)
+    except Exception:
+        return []
     finally:
         db.close()
 

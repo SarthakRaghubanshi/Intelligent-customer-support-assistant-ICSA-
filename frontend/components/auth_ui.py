@@ -130,6 +130,30 @@ def render_auth_ui():
             }
             selected_role = role_map[role_label]
             
+            restaurant_name_input = None
+            existing_restaurant_id_input = None
+            
+            if selected_role == UserRole.RESTAURANT:
+                mapping_mode = st.selectbox(
+                    "Mapping Mode",
+                    options=["Link to Existing Restaurant", "Create New Restaurant"]
+                )
+                if mapping_mode == "Link to Existing Restaurant":
+                    from utils.auth_helper import list_restaurants
+                    active_rests = list_restaurants()
+                    if not active_rests:
+                        st.warning("⚠️ No active restaurants found. Please choose 'Create New Restaurant'.")
+                    else:
+                        selected_rest_obj = st.selectbox(
+                            "Select Existing Restaurant",
+                            options=active_rests,
+                            format_func=lambda r: r.name
+                        )
+                        if selected_rest_obj:
+                            existing_restaurant_id_input = selected_rest_obj.id
+                else:
+                    restaurant_name_input = st.text_input("New Restaurant Name", placeholder="e.g. Bella Italia").strip()
+            
             register_submit = st.form_submit_button("Create Account", use_container_width=True)
             
             if register_submit:
@@ -139,13 +163,17 @@ def render_auth_ui():
                     st.error("Password must be at least 8 characters.")
                 elif reg_password != reg_confirm:
                     st.error("Passwords do not match.")
+                elif selected_role == UserRole.RESTAURANT and not restaurant_name_input and not existing_restaurant_id_input:
+                    st.error("⚠️ Please specify a restaurant name or select an existing restaurant.")
                 else:
                     success, msg = register_user(
                         email=reg_email,
                         password_raw=reg_password,
                         role=selected_role,
                         first_name=first_name,
-                        last_name=last_name
+                        last_name=last_name,
+                        restaurant_name=restaurant_name_input,
+                        existing_restaurant_id=existing_restaurant_id_input
                     )
                     if success:
                         st.success(msg)

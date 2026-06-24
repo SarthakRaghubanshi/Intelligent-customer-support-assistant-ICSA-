@@ -68,10 +68,20 @@ class DOCXParser(BaseParser):
                 if paragraph.text.strip():
                     text_parts.append(paragraph.text)
                     
-            # Extract table cell texts
+            # Extract table cell texts, deduplicating merged cells
             for table in doc.tables:
                 for row in table.rows:
-                    row_texts = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                    seen_cells = set()
+                    row_texts = []
+                    for cell in row.cells:
+                        # cell._tc is the underlying XML element (lxml element),
+                        # which is identical for merged cells in a row.
+                        cell_id = getattr(cell, "_tc", cell)
+                        if cell_id not in seen_cells:
+                            seen_cells.add(cell_id)
+                            cell_text = cell.text.strip()
+                            if cell_text:
+                                row_texts.append(cell_text)
                     if row_texts:
                         text_parts.append(" | ".join(row_texts))
                         
@@ -88,10 +98,10 @@ class CSVParser(BaseParser):
     def parse(self, file_stream: BinaryIO) -> str:
         try:
             file_stream.seek(0)
-            # CSV DictReader needs a text wrapper. We attempt UTF-8 decode.
+            # CSV DictReader needs a text wrapper. We attempt UTF-8 with BOM signature decode.
             content = file_stream.read()
             try:
-                decoded_content = content.decode("utf-8")
+                decoded_content = content.decode("utf-8-sig")
             except UnicodeDecodeError:
                 decoded_content = content.decode("iso-8859-1")
                 
@@ -123,7 +133,7 @@ class TXTParser(BaseParser):
             file_stream.seek(0)
             content = file_stream.read()
             try:
-                return content.decode("utf-8").strip()
+                return content.decode("utf-8-sig").strip()
             except UnicodeDecodeError:
                 return content.decode("iso-8859-1").strip()
         except Exception as e:
