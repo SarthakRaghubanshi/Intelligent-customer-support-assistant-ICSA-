@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import io
+import time
 from backend.database.database import get_db
 from backend.services.analytics_service import AnalyticsService
 from backend.services.knowledge_service import KnowledgeService
@@ -117,31 +119,78 @@ def render_restaurant_dashboard():
                 
                 docs = KnowledgeService.list_documents(db, token, restaurant_id)
                 
-                # --- SECTION: CREATE NEW DOCUMENT ---
-                with st.expander("➕ Create New Knowledge Document"):
-                    with st.form("create_doc_form", clear_on_submit=True):
-                        new_title = st.text_input("Document Title:", placeholder="e.g. Zone 1 Delivery Fees")
-                        new_type = st.selectbox("Document Type:", options=DOCUMENT_TYPES)
-                        new_content = st.text_area("Document Content:", placeholder="Write or paste your knowledge document text here...")
+                # --- SECTION: UPLOAD & INGEST KNOWLEDGE DOCUMENT ---
+                if "uploaded_doc_preview" in st.session_state:
+                    preview_data = st.session_state["uploaded_doc_preview"]
+                    with st.expander(f"📄 Parsed Document Preview: {preview_data['title']}", expanded=True):
+                        st.info("Showing first 500 characters of the parsed text.")
+                        preview_text = preview_data['content'][:500] + ("..." if len(preview_data['content']) > 500 else "")
+                        st.text_area("Preview (read-only):", value=preview_text, height=150, disabled=True)
+                        if st.button("Clear Preview"):
+                            del st.session_state["uploaded_doc_preview"]
+                            st.rerun()
+
+                with st.expander("➕ Ingest New Knowledge Document (File Upload)"):
+                    with st.form("upload_doc_form", clear_on_submit=True):
+                        uploaded_file = st.file_uploader(
+                            "Upload File (PDF, DOCX, CSV, TXT - Max 10MB):",
+                            type=["pdf", "docx", "csv", "txt"]
+                        )
+                        upload_title = st.text_input("Document Title (optional, defaults to filename):", placeholder="e.g. Zone 1 Delivery Fees")
+                        upload_type = st.selectbox("Document Type:", options=DOCUMENT_TYPES)
                         
-                        submit_create = st.form_submit_button("Save Document")
-                        if submit_create:
-                            if not new_title.strip() or not new_content.strip():
-                                st.error("⚠️ Title and Content are required fields.")
+                        submit_upload = st.form_submit_button("Ingest and Index Document")
+                        if submit_upload:
+                            if uploaded_file is None:
+                                st.error("⚠️ Please select a file to upload.")
                             else:
                                 try:
-                                    KnowledgeService.create_document(
+                                    progress_bar = st.progress(0)
+                                    status_text = st.empty()
+                                    
+                                    status_text.text("Validating size and extensions...")
+                                    progress_bar.progress(30)
+                                    time.sleep(0.2)
+                                    
+                                    final_title = upload_title.strip() or uploaded_file.name
+                                    
+                                    status_text.text("Parsing document content...")
+                                    progress_bar.progress(60)
+                                    time.sleep(0.2)
+                                    
+                                    # Read stream in-memory
+                                    file_bytes = uploaded_file.read()
+                                    file_stream = io.BytesIO(file_bytes)
+                                    
+                                    doc = KnowledgeService.upload_document_file(
                                         db=db,
                                         token=token,
                                         restaurant_id=restaurant_id,
-                                        title=new_title,
-                                        content=new_content,
-                                        document_type=new_type
+                                        file_stream=file_stream,
+                                        filename=uploaded_file.name,
+                                        title=final_title,
+                                        document_type=upload_type,
+                                        reported_mime=uploaded_file.type
                                     )
-                                    st.success(f"✓ Document '{new_title}' successfully created!")
+                                    
+                                    status_text.text("Indexing vectors in ChromaDB...")
+                                    progress_bar.progress(90)
+                                    time.sleep(0.2)
+                                    
+                                    progress_bar.progress(100)
+                                    status_text.empty()
+                                    
+                                    # Save to session state for persistence across rerun
+                                    st.session_state["uploaded_doc_preview"] = {
+                                        "title": doc.title,
+                                        "content": doc.content
+                                    }
+                                    
+                                    st.success(f"✓ Document '{doc.title}' successfully ingested and indexed!")
+                                    time.sleep(1)
                                     st.rerun()
                                 except Exception as err:
-                                    st.error(f"Failed to create document: {str(err)}")
+                                    st.error(f"⚠️ Failed to ingest document: {str(err)}")
 
                 st.markdown("<br/>", unsafe_allow_html=True)
                 

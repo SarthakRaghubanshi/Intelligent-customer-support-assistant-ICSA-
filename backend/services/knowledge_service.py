@@ -58,6 +58,56 @@ class KnowledgeService:
         return doc
 
     @staticmethod
+    def upload_document_file(
+        db: Session,
+        token: str,
+        restaurant_id: str,
+        file_stream: Any,
+        filename: str,
+        title: str,
+        document_type: str,
+        reported_mime: str = None
+    ) -> KnowledgeDocument:
+        """
+        Validates tenant isolation, parses the binary document stream, normalizes
+        the content, creates the DB record, and registers the vectors in ChromaDB.
+        """
+        # 1. Enforce tenant isolation and active status checking
+        AuthService.validate_tenant_access(db, token, restaurant_id)
+        
+        # 2. Validate document type before parsing
+        KnowledgeService._validate_document_type(document_type)
+        
+        # 3. Call Ingestion Service validator and parser dispatcher
+        from backend.services.ingestion_service import DocumentIngestionService
+        parsed_content = DocumentIngestionService.validate_and_parse(
+            file_stream=file_stream,
+            filename=filename,
+            reported_mime=reported_mime
+        )
+        
+        # 4. Save to relational DB
+        doc = KnowledgeRepository.create(
+            db=db,
+            restaurant_id=restaurant_id,
+            title=title.strip(),
+            content=parsed_content,
+            document_type=document_type
+        )
+        
+        # 5. Index into ChromaDB vector store
+        from backend.rag.vector_store import add_document_to_vector_store
+        add_document_to_vector_store(
+            restaurant_id=restaurant_id,
+            doc_id=doc.id,
+            title=doc.title,
+            content=doc.content,
+            document_type=doc.document_type
+        )
+        
+        return doc
+
+    @staticmethod
     def get_document(db: Session, token: str, doc_id: str) -> Optional[KnowledgeDocument]:
         """
         Retrieves a document by ID. If found, enforces tenant isolation checks.
