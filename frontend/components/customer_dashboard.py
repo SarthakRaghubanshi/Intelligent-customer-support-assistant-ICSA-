@@ -159,6 +159,18 @@ def render_customer_dashboard():
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
+            if msg.get("role") == "assistant" and msg.get("sources"):
+                with st.expander("📚 View Citations & Sources", expanded=False):
+                    for idx, src in enumerate(msg["sources"], 1):
+                        title = src.get("title", "Unknown Document")
+                        doc_type = src.get("document_type", "other").upper()
+                        doc_id = src.get("document_id", "N/A")
+                        snippet = src.get("snippet", "")
+                        
+                        st.markdown(f"**[{idx}] {title}** ({doc_type})")
+                        st.caption(f"Source ID: `{doc_id}`")
+                        if snippet:
+                            st.info(snippet)
 
     # 4. Handle chat input controls
     if prompt := st.chat_input(f"Message {selected_name} assistant..."):

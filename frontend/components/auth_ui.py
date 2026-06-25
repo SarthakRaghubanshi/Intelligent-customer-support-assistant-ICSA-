@@ -105,77 +105,58 @@ def render_auth_ui():
         st.markdown("<h4 style='color: #F8FAFC; margin-bottom: 0.5rem;'>Create Account</h4>", unsafe_allow_html=True)
         st.markdown("<p style='color: rgba(248,250,252,0.4); font-size: 0.85rem; margin-bottom: 1.5rem;'>Sign up to deploy custom assistant agents.</p>", unsafe_allow_html=True)
         
-        with st.form("registration_form"):
-            reg_email = st.text_input("Email Address", placeholder="name@example.com").strip()
-            reg_password = st.text_input("Password (minimum 8 characters)", type="password", placeholder="••••••••")
-            reg_confirm = st.text_input("Confirm Password", type="password", placeholder="••••••••")
+        # Unwrapped from st.form to enable dynamic fields rendering on widget selection changes
+        reg_email = st.text_input("Email Address", placeholder="name@example.com", key="reg_email").strip()
+        reg_password = st.text_input("Password (minimum 8 characters)", type="password", placeholder="••••••••", key="reg_password")
+        reg_confirm = st.text_input("Confirm Password", type="password", placeholder="••••••••", key="reg_confirm")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            first_name = st.text_input("First Name (Optional)", placeholder="John", key="reg_first_name").strip()
+        with col2:
+            last_name = st.text_input("Last Name (Optional)", placeholder="Doe", key="reg_last_name").strip()
             
-            col1, col2 = st.columns(2)
-            with col1:
-                first_name = st.text_input("First Name (Optional)", placeholder="John").strip()
-            with col2:
-                last_name = st.text_input("Last Name (Optional)", placeholder="Doe").strip()
-                
-            role_label = st.selectbox(
-                "Select Account Role",
-                options=["Customer Support User", "Restaurant Manager", "System Administrator"],
-                index=0
-            )
-            
-            # Map selected human readable label to the standard UserRole model enum values
-            role_map = {
-                "Customer Support User": UserRole.CUSTOMER,
-                "Restaurant Manager": UserRole.RESTAURANT,
-                "System Administrator": UserRole.ADMIN
-            }
-            selected_role = role_map[role_label]
-            
-            restaurant_name_input = None
-            existing_restaurant_id_input = None
-            
-            if selected_role == UserRole.RESTAURANT:
-                mapping_mode = st.selectbox(
-                    "Mapping Mode",
-                    options=["Link to Existing Restaurant", "Create New Restaurant"]
+        role_label = st.selectbox(
+            "Select Account Role",
+            options=["Customer Support User", "Restaurant Manager", "System Administrator"],
+            index=0,
+            key="reg_role_label"
+        )
+        
+        # Map selected human readable label to the standard UserRole model enum values
+        role_map = {
+            "Customer Support User": UserRole.CUSTOMER,
+            "Restaurant Manager": UserRole.RESTAURANT,
+            "System Administrator": UserRole.ADMIN
+        }
+        selected_role = role_map[role_label]
+        
+        restaurant_name_input = None
+        
+        if selected_role == UserRole.RESTAURANT:
+            restaurant_name_input = st.text_input("Restaurant Name", placeholder="e.g. Bella Italia", key="reg_new_rest_name").strip()
+        
+        register_submit = st.button("Create Account", key="register_submit_btn", use_container_width=True)
+        
+        if register_submit:
+            if not reg_email or not reg_password:
+                st.error("Please fill in email and password fields.")
+            elif len(reg_password) < 8:
+                st.error("Password must be at least 8 characters.")
+            elif reg_password != reg_confirm:
+                st.error("Passwords do not match.")
+            elif selected_role == UserRole.RESTAURANT and not restaurant_name_input:
+                st.error("⚠️ Please specify a restaurant name.")
+            else:
+                success, msg = register_user(
+                    email=reg_email,
+                    password_raw=reg_password,
+                    role=selected_role,
+                    first_name=first_name,
+                    last_name=last_name,
+                    restaurant_name=restaurant_name_input
                 )
-                if mapping_mode == "Link to Existing Restaurant":
-                    from utils.auth_helper import list_restaurants
-                    active_rests = list_restaurants()
-                    if not active_rests:
-                        st.warning("⚠️ No active restaurants found. Please choose 'Create New Restaurant'.")
-                    else:
-                        selected_rest_obj = st.selectbox(
-                            "Select Existing Restaurant",
-                            options=active_rests,
-                            format_func=lambda r: r.name
-                        )
-                        if selected_rest_obj:
-                            existing_restaurant_id_input = selected_rest_obj.id
+                if success:
+                    st.success(msg)
                 else:
-                    restaurant_name_input = st.text_input("New Restaurant Name", placeholder="e.g. Bella Italia").strip()
-            
-            register_submit = st.form_submit_button("Create Account", use_container_width=True)
-            
-            if register_submit:
-                if not reg_email or not reg_password:
-                    st.error("Please fill in email and password fields.")
-                elif len(reg_password) < 8:
-                    st.error("Password must be at least 8 characters.")
-                elif reg_password != reg_confirm:
-                    st.error("Passwords do not match.")
-                elif selected_role == UserRole.RESTAURANT and not restaurant_name_input and not existing_restaurant_id_input:
-                    st.error("⚠️ Please specify a restaurant name or select an existing restaurant.")
-                else:
-                    success, msg = register_user(
-                        email=reg_email,
-                        password_raw=reg_password,
-                        role=selected_role,
-                        first_name=first_name,
-                        last_name=last_name,
-                        restaurant_name=restaurant_name_input,
-                        existing_restaurant_id=existing_restaurant_id_input
-                    )
-                    if success:
-                        st.success(msg)
-                    else:
-                        st.error(f"Registration failed: {msg}")
+                    st.error(f"Registration failed: {msg}")

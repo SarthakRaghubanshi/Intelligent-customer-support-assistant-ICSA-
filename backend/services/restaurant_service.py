@@ -13,53 +13,43 @@ class RestaurantService:
         return RestaurantRepository.list_active(db)
 
     @staticmethod
-    def onboard_restaurant(
+    def public_onboard_restaurant(
         db: Session,
         email: str,
         password_raw: str,
         first_name: Optional[str],
         last_name: Optional[str],
-        restaurant_name: Optional[str] = None,
-        existing_restaurant_id: Optional[str] = None
+        restaurant_name: str
     ):
         """
-        Atomically onboards a new restaurant context and creates a manager linked to it.
+        Atomically creates a new restaurant and the owner manager associated with it.
+        Publicly accessible flow without authentication/token checks.
         """
-        if not existing_restaurant_id and not restaurant_name:
-            raise ValueError("Either restaurant_name or existing_restaurant_id must be provided for manager onboarding.")
-            
-        restaurant_id = None
+        if not restaurant_name or not restaurant_name.strip():
+            raise ValueError("Restaurant name is required for manager onboarding.")
+
+        # Check duplicate restaurant name constraint
+        existing = RestaurantRepository.get_by_name(db, restaurant_name)
+        if existing:
+            raise ValueError(f"Restaurant name '{restaurant_name.strip()}' is already taken.")
+
+        # Validate duplicate user email beforehand
+        from backend.repositories.user_repository import UserRepository
+        existing_user = UserRepository.get_by_email(db, email)
+        if existing_user:
+            raise ValueError("Email already registered")
+
         created_restaurant = None
-
         try:
-            if existing_restaurant_id:
-                # Existing restaurant onboarding path
-                restaurant = RestaurantRepository.get_by_id(db, existing_restaurant_id)
-                if not restaurant:
-                    raise ValueError("Target restaurant does not exist or is inactive.")
-                restaurant_id = restaurant.id
-            else:
-                # New restaurant onboarding path
-                # Verify unique name constraint beforehand
-                existing = RestaurantRepository.get_by_name(db, restaurant_name)
-                if existing:
-                    raise ValueError(f"Restaurant name '{restaurant_name.strip()}' is already taken.")
-                
-                created_restaurant = RestaurantRepository.create(
-                    db=db,
-                    name=restaurant_name
-                )
-                restaurant_id = created_restaurant.id
+            # Create new restaurant
+            created_restaurant = RestaurantRepository.create(
+                db=db,
+                name=restaurant_name
+            )
+            restaurant_id = created_restaurant.id
 
-            # Create manager user
-            from backend.repositories.user_repository import UserRepository
+            # Create owner manager user
             from backend.models.user import UserRole
-
-            # Validate duplicate user email beforehand
-            existing_user = UserRepository.get_by_email(db, email)
-            if existing_user:
-                raise ValueError("Email already registered")
-
             user = UserRepository.create(
                 db=db,
                 email=email,
@@ -70,9 +60,7 @@ class RestaurantService:
                 restaurant_id=restaurant_id
             )
             return created_restaurant, user
-            
         except Exception as err:
-            # Atomic rollback: rollback first to reset session state, then delete the newly created restaurant if manager creation failed
             db.rollback()
             if created_restaurant:
                 try:
@@ -81,6 +69,50 @@ class RestaurantService:
                 except Exception:
                     pass
             raise err
+
+    @staticmethod
+    def invite_manager(
+        db: Session,
+        token: str,
+        email: str,
+        password_raw: str,
+        first_name: Optional[str],
+        last_name: Optional[str],
+        existing_restaurant_id: str
+    ):
+        """
+        Invites/onboards a new manager user into an existing restaurant context.
+        Requires owner/admin authorization via token verification.
+        """
+        if not existing_restaurant_id:
+            raise ValueError("existing_restaurant_id is required.")
+
+        # Require owner/admin authorization
+        AuthService.validate_tenant_access(db, token, existing_restaurant_id)
+
+        # Check existing restaurant
+        restaurant = RestaurantRepository.get_by_id(db, existing_restaurant_id)
+        if not restaurant:
+            raise ValueError("Target restaurant does not exist or is inactive.")
+
+        # Check duplicate manager email
+        from backend.repositories.user_repository import UserRepository
+        existing_user = UserRepository.get_by_email(db, email)
+        if existing_user:
+            raise ValueError("Email already registered")
+
+        # Create manager user
+        from backend.models.user import UserRole
+        user = UserRepository.create(
+            db=db,
+            email=email,
+            password_raw=password_raw,
+            role=UserRole.RESTAURANT,
+            first_name=first_name,
+            last_name=last_name,
+            restaurant_id=existing_restaurant_id
+        )
+        return restaurant, user
 
     @staticmethod
     def get_profile(db: Session, token: str, restaurant_id: str) -> Restaurant:

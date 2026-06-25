@@ -16,13 +16,30 @@ class AuthService:
         password_raw: str, 
         role: UserRole = UserRole.CUSTOMER,
         first_name: Optional[str] = None, 
-        last_name: Optional[str] = None
+        last_name: Optional[str] = None,
+        restaurant_name: Optional[str] = None,
+        existing_restaurant_id: Optional[str] = None
     ) -> User:
         """
         Registers a new user after verifying that the email is not already taken.
+        Delegates manager onboarding to RestaurantService.
         """
+        if existing_restaurant_id is not None:
+            raise PermissionError("Public registration cannot join an existing restaurant.")
+            
         if role == UserRole.RESTAURANT:
-            raise ValueError("Restaurant Manager registration must use onboarding endpoint with restaurant context.")
+            if not restaurant_name:
+                raise ValueError("Restaurant name is required for manager onboarding.")
+            from backend.services.restaurant_service import RestaurantService
+            _, user = RestaurantService.public_onboard_restaurant(
+                db=db,
+                email=email,
+                password_raw=password_raw,
+                first_name=first_name,
+                last_name=last_name,
+                restaurant_name=restaurant_name
+            )
+            return user
             
         existing_user = UserRepository.get_by_email(db, email)
         if existing_user:

@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 
 # Ensure project root is in the path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,7 +28,7 @@ from backend.repositories.user_repository import UserRepository
 
 def run_tenant_onboarding_tests():
     print("=" * 80)
-    print("RUNNING TENANT ONBOARDING VERIFICATION")
+    print("RUNNING TENANT ONBOARDING VERIFICATION (FINAL ARCHITECTURE)")
     print("=" * 80)
 
     # 1. Initialize tables
@@ -36,128 +37,130 @@ def run_tenant_onboarding_tests():
     db = SessionLocal()
 
     try:
-        # Assertion 1: Manager cannot register without tenant context
-        print("\n1. Verifying that a manager cannot register without tenant context...")
+        # Create a seeded restaurant and an admin/manager for invitation testing
+        print("\nSeeding baseline restaurant and admin...")
+        seeded_rest = RestaurantRepository.create(db=db, name="Seeded Cafe")
         
-        # Test 1.a: Through AuthService.register_user directly
-        try:
-            AuthService.register_user(
-                db=db,
-                email="manager_orphan_auth@saas.com",
-                password_raw="securepass123",
-                role=UserRole.RESTAURANT
-            )
-            assert False, "Failed: AuthService allowed manager registration without tenant context"
-        except ValueError as e:
-            print(f"✓ AuthService.register_user rejected orphan manager as expected: {e}")
-
-        # Test 1.b: Through RestaurantService.onboard_restaurant with both None
-        try:
-            RestaurantService.onboard_restaurant(
-                db=db,
-                email="manager_orphan_service@saas.com",
-                password_raw="securepass123",
-                first_name="Orphan",
-                last_name="Manager",
-                restaurant_name=None,
-                existing_restaurant_id=None
-            )
-            assert False, "Failed: RestaurantService allowed manager onboarding without any tenant context"
-        except ValueError as e:
-            print(f"✓ RestaurantService.onboard_restaurant rejected empty context: {e}")
-
-
-        # Assertion 2: Existing restaurant mapping succeeds
-        print("\n2. Verifying existing restaurant mapping...")
-        # Create an existing restaurant beforehand
-        existing_rest = RestaurantRepository.create(db=db, name="Tasty Treats Cafe")
-        assert existing_rest.id is not None
-        
-        created_rest, user = RestaurantService.onboard_restaurant(
+        seeded_admin = UserRepository.create(
             db=db,
-            email="manager_existing@saas.com",
+            email="admin@saas.com",
             password_raw="securepass123",
-            first_name="Alice",
-            last_name="Smith",
-            restaurant_name=None,
-            existing_restaurant_id=existing_rest.id
+            role=UserRole.ADMIN
         )
-        
-        # Alice is mapped to the existing restaurant
-        assert user.role == UserRole.RESTAURANT
-        assert user.restaurant_id == existing_rest.id
-        # Since it was existing, onboard_restaurant should return None or the existing rest.
-        # Let's check what the service returns. In our service:
-        # created_restaurant is None for existing, so it returns None, user (or existing, user depending on return value)
-        # Wait, in the repository diff, it returned created_restaurant, user, so created_restaurant is None for existing.
-        assert user.email == "manager_existing@saas.com"
-        print("✓ Existing restaurant mapping succeeded.")
+        # Create token for administrative calls
+        admin_token = AuthService.create_access_token(seeded_admin.id, seeded_admin.email, seeded_admin.role.value)
 
-
-        # Assertion 3: New restaurant onboarding succeeds
-        print("\n3. Verifying new restaurant onboarding...")
-        new_rest, manager_user = RestaurantService.onboard_restaurant(
+        # =====================================================================
+        # TEST 1: New Restaurant Manager Onboarding (PASS expected)
+        # =====================================================================
+        print("\nTest 1: Verifying new restaurant manager onboarding through AuthService...")
+        manager_user = AuthService.register_user(
             db=db,
             email="manager_new@saas.com",
             password_raw="securepass123",
+            role=UserRole.RESTAURANT,
             first_name="Bob",
             last_name="Jones",
-            restaurant_name="Gourmet Pizza Hub",
-            existing_restaurant_id=None
+            restaurant_name="Gourmet Pizza Hub"
         )
         
+        assert manager_user.id is not None
+        assert manager_user.role == UserRole.RESTAURANT
+        assert manager_user.restaurant_id is not None
+        
+        # Verify restaurant was created
+        new_rest = RestaurantRepository.get_by_id(db, manager_user.restaurant_id)
         assert new_rest is not None
         assert new_rest.name == "Gourmet Pizza Hub"
-        assert manager_user.role == UserRole.RESTAURANT
-        assert manager_user.restaurant_id == new_rest.id
-        print("✓ New restaurant onboarding succeeded.")
+        print("✓ New restaurant manager onboarding succeeded.")
 
-
-        # Assertion 4: Duplicate restaurant name fails
-        print("\n4. Verifying duplicate restaurant name rejection...")
+        # =====================================================================
+        # TEST 2: Duplicate Restaurant Name Rejection (FAIL expected)
+        # =====================================================================
+        print("\nTest 2: Verifying duplicate restaurant name rejection...")
         try:
-            RestaurantService.onboard_restaurant(
+            AuthService.register_user(
                 db=db,
-                email="manager_dup@saas.com",
+                email="manager_dup_name@saas.com",
                 password_raw="securepass123",
+                role=UserRole.RESTAURANT,
                 first_name="Charlie",
                 last_name="Brown",
-                restaurant_name="Gourmet Pizza Hub",  # Duplicate name
-                existing_restaurant_id=None
+                restaurant_name="Gourmet Pizza Hub" # Duplicate name
             )
-            assert False, "Failed: Allowed duplicate restaurant name creation"
+            assert False, "Failed: Allowed duplicate restaurant name registration"
         except ValueError as e:
-            assert "already taken" in str(e) or "already registered" in str(e)
-            print(f"✓ Duplicate restaurant name rejected: {e}")
+            assert "already taken" in str(e)
+            print(f"✓ Duplicate restaurant name rejected correctly: {e}")
 
+        # =====================================================================
+        # TEST 3: Duplicate Email Rejection (FAIL expected)
+        # =====================================================================
+        print("\nTest 3: Verifying duplicate email rejection...")
+        try:
+            AuthService.register_user(
+                db=db,
+                email="manager_new@saas.com", # Duplicate email
+                password_raw="securepass123",
+                role=UserRole.RESTAURANT,
+                first_name="David",
+                last_name="Miller",
+                restaurant_name="Miller Bistro"
+            )
+            assert False, "Failed: Allowed registration with duplicate email"
+        except ValueError as e:
+            assert "Email already registered" in str(e)
+            print(f"✓ Duplicate email rejected correctly: {e}")
 
-        # Assertion 5: Transaction rollback occurs if manager creation fails
-        print("\n5. Verifying transaction rollback on manager creation failure...")
-        # We will trigger user creation failure by using an already registered email: manager_new@saas.com
+        # =====================================================================
+        # TEST 4: Atomicity & Rollback (PASS expected)
+        # =====================================================================
+        print("\nTest 4: Verifying rollback on manager creation failure...")
         target_name = "Failure Diner"
         try:
-            RestaurantService.onboard_restaurant(
+            AuthService.register_user(
                 db=db,
-                email="manager_new@saas.com", # Duplicate email, will fail user creation
+                email="manager_new@saas.com", # Duplicate email, will fail user save step
                 password_raw="securepass123",
+                role=UserRole.RESTAURANT,
                 first_name="Failure",
                 last_name="Manager",
-                restaurant_name=target_name,
-                existing_restaurant_id=None
+                restaurant_name=target_name
             )
             assert False, "Failed: Allowed onboarding with duplicate email"
         except ValueError as e:
             assert "Email already registered" in str(e)
-            print(f"✓ Manager creation failed as expected: {e}")
+            print(f"✓ Registration failed as expected: {e}")
             
-        # Verify that "Failure Diner" was rolled back and does not exist in db
+        # Verify that "Failure Diner" was rolled back and does not exist in DB
         rolled_back_rest = RestaurantRepository.get_by_name(db=db, name=target_name)
         assert rolled_back_rest is None, "Failed: 'Failure Diner' was not rolled back and persists in DB"
-        print("✓ New restaurant creation rolled back cleanly.")
+        print("✓ New restaurant creation rolled back cleanly, database remains clean.")
 
+        # =====================================================================
+        # TEST 5: Public Existing Restaurant Joining Rejection (FAIL expected)
+        # =====================================================================
+        print("\nTest 5: Verifying public registration cannot join an existing restaurant...")
+        try:
+            AuthService.register_user(
+                db=db,
+                email="hacker@saas.com",
+                password_raw="securepass123",
+                role=UserRole.RESTAURANT,
+                first_name="Hacker",
+                last_name="One",
+                restaurant_name=None,
+                existing_restaurant_id=seeded_rest.id # Injection of existing id
+            )
+            assert False, "Failed: Allowed public registration to link to existing restaurant ID"
+        except PermissionError as e:
+            assert "cannot join an existing restaurant" in str(e)
+            print(f"✓ Injected existing_restaurant_id was rejected as expected: {e}")
 
-        # Assertion 6: Customer registration remains unchanged
-        print("\n6. Verifying customer registration remains unchanged...")
+        # =====================================================================
+        # TEST 6: Customer Registration Unchanged (PASS expected)
+        # =====================================================================
+        print("\nTest 6: Verifying customer registration remains unchanged...")
         customer_user = AuthService.register_user(
             db=db,
             email="customer@saas.com",
@@ -169,14 +172,15 @@ def run_tenant_onboarding_tests():
         assert customer_user.id is not None
         assert customer_user.role == UserRole.CUSTOMER
         assert customer_user.restaurant_id is None
-        print("✓ Customer registered successfully without restaurant mapping.")
+        print("✓ Customer registered successfully without restaurant context.")
 
-
-        # Assertion 7: Admin registration remains unchanged
-        print("\n7. Verifying admin registration remains unchanged...")
+        # =====================================================================
+        # TEST 7: Admin Registration Unchanged (PASS expected)
+        # =====================================================================
+        print("\nTest 7: Verifying admin registration remains unchanged...")
         admin_user = AuthService.register_user(
             db=db,
-            email="admin@saas.com",
+            email="admin_new@saas.com",
             password_raw="securepass123",
             role=UserRole.ADMIN,
             first_name="Super",
@@ -185,7 +189,46 @@ def run_tenant_onboarding_tests():
         assert admin_user.id is not None
         assert admin_user.role == UserRole.ADMIN
         assert admin_user.restaurant_id is None
-        print("✓ Admin registered successfully without restaurant mapping.")
+        print("✓ Admin registered successfully without restaurant context.")
+
+        # =====================================================================
+        # TEST 8: Internal Manager Onboarding via invite_manager (PASS expected)
+        # =====================================================================
+        print("\nTest 8: Verifying authorized invite_manager linking...")
+        linked_rest, linked_user = RestaurantService.invite_manager(
+            db=db,
+            token=admin_token,
+            email="manager_invite@saas.com",
+            password_raw="securepass123",
+            first_name="Invited",
+            last_name="Manager",
+            existing_restaurant_id=seeded_rest.id
+        )
+        assert linked_rest.id == seeded_rest.id
+        assert linked_user.role == UserRole.RESTAURANT
+        assert linked_user.restaurant_id == seeded_rest.id
+        print("✓ Internal manager invitation linked manager to existing restaurant successfully.")
+
+        # =====================================================================
+        # TEST 9: Unauthorized invite_manager Call Rejection (FAIL expected)
+        # =====================================================================
+        print("\nTest 9: Verifying unauthorized invite_manager call gets blocked...")
+        # Create token for regular customer
+        customer_token = AuthService.create_access_token(customer_user.id, customer_user.email, customer_user.role.value)
+        try:
+            RestaurantService.invite_manager(
+                db=db,
+                token=customer_token,
+                email="manager_hack@saas.com",
+                password_raw="securepass123",
+                first_name="Hack",
+                last_name="Manager",
+                existing_restaurant_id=seeded_rest.id
+            )
+            assert False, "Failed: Allowed regular customer token to execute manager invitation"
+        except PermissionError as e:
+            assert "Denied" in str(e)
+            print(f"✓ Unauthorized call blocked with PermissionError as expected: {e}")
 
     finally:
         db.close()
