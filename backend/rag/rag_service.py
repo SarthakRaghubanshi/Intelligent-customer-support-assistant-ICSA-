@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 import google.generativeai as genai
 
+from backend.core.gemini_client import CHAT_MODEL
 from backend.core.tenant import verify_restaurant_active
 from backend.repositories.restaurant_repository import RestaurantRepository
 from backend.rag.retriever import retrieve_relevant_chunks_with_metadata
@@ -19,7 +20,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 class RAGService:
     @staticmethod
-    def answer_question(db: Session, restaurant_id: str, question: str) -> Dict[str, Any]:
+    def answer_question(db: Session, restaurant_id: str, question: str, metadata: Dict[str, Any] = None, history: list = None) -> Dict[str, Any]:
         """
         Connects retrieval, prompt building, and LLM text generation into a
         tenant-aware pipeline with strict distance threshold checks.
@@ -42,21 +43,11 @@ class RAGService:
                 "prompt": ""
             }
 
-        # 4. Attach scores in production environment (since retrieve_relevant_chunks_with_metadata doesn't return scores)
-        persist_dir = os.path.join(root_dir, "data", "chroma_db", restaurant_id)
-        if os.path.exists(persist_dir):
-            try:
-                from backend.rag.vector_store import load_vector_store
-                db_store = load_vector_store(restaurant_id, persist_dir)
-                results = db_store.similarity_search_with_score(question, k=5)
-                for idx, (doc, score) in enumerate(results):
-                    if idx < len(retrieved_chunks):
-                        retrieved_chunks[idx]["score"] = float(score)
-            except Exception as e:
-                print(f"Warning: Failed to fetch scores from vector store: {str(e)}")
-
-        # Calculate best score (L2 Distance where lower is closer; default to 0.0 if not available)
-        best_score = retrieved_chunks[0].get("score", 0.0)
+        # 4. Best similarity score (L2 distance, lower = closer). Scores now come
+        # directly from the single retrieval above (retriever includes them), so
+        # no second embedding round-trip is needed. Default conservatively to a
+        # large distance so a missing score does not silently force a Gemini call.
+        best_score = retrieved_chunks[0].get("score", 1.0)
 
         # 5. Apply distance threshold check (best_score <= 0.75 is a match)
         threshold = 0.75
@@ -77,8 +68,8 @@ class RAGService:
             answer_text = "I could not find that information in the restaurant knowledge base."
             prompt = ""
         else:
-            # Build prompt
-            prompt = build_rag_prompt(restaurant.name, retrieved_chunks, question)
+            # Build prompt (NLU metadata drives tone + language; history gives multi-turn context)
+            prompt = build_rag_prompt(restaurant.name, retrieved_chunks, question, metadata=metadata, history=history)
 
             # Gemini Generation & Failure Handling
             if not GEMINI_API_KEY:
@@ -95,7 +86,7 @@ class RAGService:
 
             try:
                 genai.configure(api_key=GEMINI_API_KEY)
-                model = genai.GenerativeModel("gemini-2.5-flash")
+                model = genai.GenerativeModel(CHAT_MODEL)
                 response = model.generate_content(prompt)
                 if not response or not response.text:
                     raise RuntimeError("Empty response from Gemini API.")

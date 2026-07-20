@@ -20,6 +20,7 @@ SPANISH_KEYWORDS = {'hola', 'gracias', 'buenos', 'dias', 'como', 'estas', 'por',
 FRENCH_KEYWORDS = {'bonjour', 'merci', "s'il", 'vous', 'plait', 'comment', 'allez', 'ca', 'va', 'salut'}
 GERMAN_KEYWORDS = {'hallo', 'danke', 'wie', 'geht', 'es', 'dir', 'guten', 'tag', 'bitte', 'tschüss'}
 HINDI_KEYWORDS = {'नमस्ते', 'धन्यवाद', 'कैसे', 'हो', 'आप', 'हैं', 'शुक्रिया'}
+ARABIC_KEYWORDS = {'مرحبا', 'شكرا', 'من', 'فضلك', 'كيف', 'حالك', 'أين', 'طلبي', 'السلام', 'عليكم', 'shukran', 'marhaba', 'salam'}
 
 ENGLISH_HINTS = {
     "hello",
@@ -56,6 +57,11 @@ def classify_language_rules(query: str) -> Optional[Dict[str, Any]]:
     has_devanagari = bool(re.search(r'[\u0900-\u097F]', query))
     has_hindi_keyword = any(kw in normalized for kw in HINDI_KEYWORDS)
     hindi_matches = has_devanagari or has_hindi_keyword
+
+    # 1b. Arabic Check: Arabic script range or explicit Arabic keywords
+    has_arabic_script = bool(re.search(r'[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]', query))
+    has_arabic_keyword = any(kw in normalized for kw in ARABIC_KEYWORDS)
+    arabic_matches = has_arabic_script or has_arabic_keyword
 
     # Extract Latin words
     latin_words = re.findall(r"\b[a-z']+\b", normalized)
@@ -94,6 +100,8 @@ def classify_language_rules(query: str) -> Optional[Dict[str, Any]]:
     matches = []
     if hindi_matches:
         matches.append(("Hindi", "hi"))
+    if arabic_matches:
+        matches.append(("Arabic", "ar"))
     if spanish_matches:
         matches.append(("Spanish", "es"))
     if french_matches:
@@ -133,7 +141,7 @@ def classify_language_gemini(query: str) -> Dict[str, Any]:
     Sends the user message to Gemini API as fallback (Layer 2)
     to classify into English, Hindi, Spanish, French, German, or Unknown.
     """
-    from backend.gemini_service import genai, GEMINI_API_KEY
+    from backend.core.gemini_client import genai, GEMINI_API_KEY, CHAT_MODEL
     if not GEMINI_API_KEY:
         return {
             "language": "Unknown",
@@ -144,21 +152,22 @@ def classify_language_gemini(query: str) -> Dict[str, Any]:
 
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel(CHAT_MODEL)
 
         system_instruction = (
             "You are a highly precise language detection engine.\n"
-            "Your task is to analyze the user's query and categorize it into exactly one of the following 5 languages or Unknown:\n"
+            "Your task is to analyze the user's query and categorize it into exactly one of the following languages or Unknown:\n"
             "1. 'English' (code: 'en')\n"
             "2. 'Hindi' (code: 'hi')\n"
-            "3. 'Spanish' (code: 'es')\n"
-            "4. 'French' (code: 'fr')\n"
-            "5. 'German' (code: 'de')\n"
-            "6. 'Unknown' (code: 'unknown')\n\n"
+            "3. 'Arabic' (code: 'ar')\n"
+            "4. 'Spanish' (code: 'es')\n"
+            "5. 'French' (code: 'fr')\n"
+            "6. 'German' (code: 'de')\n"
+            "7. 'Unknown' (code: 'unknown')\n\n"
             "You MUST return the output ONLY as a valid JSON object matching this schema:\n"
             "{\n"
-            "  \"language\": \"<English|Hindi|Spanish|French|German|Unknown>\",\n"
-            "  \"code\": \"<en|hi|es|fr|de|unknown>\",\n"
+            "  \"language\": \"<English|Hindi|Arabic|Spanish|French|German|Unknown>\",\n"
+            "  \"code\": \"<en|hi|ar|es|fr|de|unknown>\",\n"
             "  \"confidence\": <float between 0.0 and 1.0>\n"
             "}\n"
             "Do not include any formatting, codeblocks, backticks, or other text outside the JSON object."

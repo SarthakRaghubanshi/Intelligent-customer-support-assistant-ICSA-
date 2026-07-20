@@ -13,6 +13,7 @@ class EscalationService:
     PRIORITY_MAP = {
         "Refund Request": "high",
         "Customer Complaint": "high",
+        "Abusive Language": "high",
         "Human Assistance Requested": "high",
         "Negative Sentiment": "medium",
         "Low Confidence": "low"
@@ -47,6 +48,13 @@ class EscalationService:
 
         # Sync conversation status to escalated
         ConversationService.update_status(db, conversation_id, "escalated")
+
+        # Notify restaurant staff (Email/SMS/Push integration point) + audit trail.
+        try:
+            from backend.services.notification_service import NotificationService
+            NotificationService.notify_escalation(db, escalation, restaurant_id=conversation.restaurant_id)
+        except Exception:
+            pass
 
         return escalation
 

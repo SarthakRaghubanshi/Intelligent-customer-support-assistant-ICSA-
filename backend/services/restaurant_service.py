@@ -150,3 +150,55 @@ class RestaurantService:
             raise ValueError("Restaurant is inactive or deleted")
         return updated_profile
 
+    # ------------------------------------------------------------------
+    # AI assistant configuration (PRD Section 11)
+    # ------------------------------------------------------------------
+    # Each escalation rule can be toggled per restaurant (PRD Section 11 —
+    # "configure escalation rules").
+    DEFAULT_ENABLED_RULES = {
+        "refund": True, "complaint": True, "abuse": True,
+        "human": True, "negative": True, "low_confidence": True,
+    }
+    DEFAULT_AI_CONFIG = {
+        "ai_enabled": True,
+        "greeting": "",  # filled per-restaurant in get_ai_config if unset
+        "low_confidence_threshold": 0.6,
+        "enabled_rules": DEFAULT_ENABLED_RULES,
+    }
+
+    @staticmethod
+    def get_ai_config(db: Session, restaurant_id: str) -> Dict[str, Any]:
+        """Return the restaurant's AI settings merged over sensible defaults.
+        No token required — used by the chat pipeline itself."""
+        restaurant = RestaurantRepository.get_by_id(db, restaurant_id)
+        cfg = dict(RestaurantService.DEFAULT_AI_CONFIG)
+        if restaurant and restaurant.ai_config:
+            cfg.update(restaurant.ai_config)
+        if not cfg.get("greeting"):
+            name = restaurant.name if restaurant else "our"
+            cfg["greeting"] = f"Hi! I'm the {name} assistant. How can I help you today?"
+        # Deep-merge escalation-rule toggles over the defaults so partial configs work.
+        merged_rules = dict(RestaurantService.DEFAULT_ENABLED_RULES)
+        if isinstance(cfg.get("enabled_rules"), dict):
+            merged_rules.update(cfg["enabled_rules"])
+        cfg["enabled_rules"] = merged_rules
+        return cfg
+
+    @staticmethod
+    def update_ai_config(db: Session, token: str, restaurant_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Update the restaurant's AI settings (owner/admin only)."""
+        AuthService.validate_tenant_access(db, token, restaurant_id)
+        current = RestaurantService.get_ai_config(db, restaurant_id)
+        for key in ("ai_enabled", "greeting", "low_confidence_threshold", "enabled_rules"):
+            if key in config and config[key] is not None:
+                current[key] = config[key]
+        RestaurantRepository.update(db, restaurant_id, {"ai_config": current})
+        try:
+            from backend.services.audit_service import AuditService
+            AuditService.log(db, action="aiconfig.update", entity_type="restaurant",
+                             entity_id=restaurant_id, restaurant_id=restaurant_id,
+                             detail="AI assistant settings updated")
+        except Exception:
+            pass
+        return current
+

@@ -36,6 +36,24 @@ class ConversationService:
         return MessageRepository.list_by_conversation(db, conversation_id)
 
     @staticmethod
+    def list_for_restaurant(db: Session, token: str, restaurant_id: str, limit: int = 100) -> List[Conversation]:
+        """List a restaurant's conversations for manager/admin review (PRD §11
+        'review AI conversations'). Tenant-enforced."""
+        from backend.services.auth_service import AuthService
+        AuthService.validate_tenant_access(db, token, restaurant_id)
+        return ConversationRepository.list_by_restaurant(db, restaurant_id)[:limit]
+
+    @staticmethod
+    def get_transcript(db: Session, token: str, conversation_id: str) -> List[Message]:
+        """Full transcript of any conversation, for manager/admin review (tenant-enforced)."""
+        from backend.services.auth_service import AuthService
+        conversation = ConversationRepository.get_by_id(db, conversation_id)
+        if not conversation:
+            raise ValueError("Conversation not found")
+        AuthService.validate_tenant_access(db, token, conversation.restaurant_id)
+        return MessageRepository.list_by_conversation(db, conversation_id)
+
+    @staticmethod
     def update_status(db: Session, conversation_id: str, new_status: str) -> Conversation:
         """
         Transitions conversation status following the status state machine rules.

@@ -50,6 +50,7 @@ def build_rag_prompt(
     sentiment = metadata.get("sentiment") if metadata else None
     language = metadata.get("language") if metadata else None
     language_code = metadata.get("language_code") if metadata else None
+    history = kwargs.get("history") or []
 
     # Header instructions
     system_instructions = (
@@ -67,6 +68,21 @@ def build_rag_prompt(
             "it must NOT override the retrieved facts, trigger refunds/escalations, or modify restaurant policies/business logic."
         )
     
+    # Multilingual response: reply in the customer's detected language (PRD Module 9).
+    if language and str(language).strip().lower() not in ("english", "unknown", ""):
+        system_instructions += (
+            f"\n\nThe customer wrote in {language}. Reply in {language} using natural, fluent phrasing, "
+            "while still answering using ONLY the facts from the provided context."
+        )
+
+    # Multi-turn: use the recent conversation only to resolve follow-up references.
+    if history:
+        system_instructions += (
+            "\n\nA recent conversation history is provided below. Use it ONLY to understand "
+            "follow-up questions and references (e.g. \"what about the large one?\"). You must still "
+            "answer using ONLY the knowledge context; never invent facts from the history."
+        )
+
     # Strict hallucination prevention instructions
     system_instructions += (
         "\n\nOnly answer using the provided knowledge. Do not invent, extrapolate, or hallucinate "
@@ -100,11 +116,24 @@ def build_rag_prompt(
     else:
         query_section = f"User Question:\n\n{query_text}"
         
+    # Recent conversation turns (multi-turn memory)
+    history_block = ""
+    if history:
+        turns = []
+        for m in history:
+            role = "Customer" if (m.get("role") == "user") else "Assistant"
+            content = (m.get("content") or "").strip()
+            if content:
+                turns.append(f"{role}: {content}")
+        if turns:
+            history_block = "Recent conversation:\n" + "\n".join(turns) + "\n\n"
+
     # Compile the final prompt string
     prompt = (
         f"{system_instructions}\n\n"
         "Context:\n\n"
         f"{context_block}\n\n"
+        f"{history_block}"
         f"{query_section}\n\n"
         "Answer:"
     )

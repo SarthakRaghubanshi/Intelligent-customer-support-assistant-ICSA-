@@ -26,7 +26,11 @@ class AuthService:
         """
         if existing_restaurant_id is not None:
             raise PermissionError("Public registration cannot join an existing restaurant.")
-            
+
+        # Administrator accounts are seeded, never self-registered (roadmap Phase 2).
+        if role == UserRole.ADMIN:
+            raise PermissionError("Administrator accounts cannot be created through registration.")
+
         if role == UserRole.RESTAURANT:
             if not restaurant_name:
                 raise ValueError("Restaurant name is required for manager onboarding.")
@@ -68,7 +72,14 @@ class AuthService:
             
         if not user.is_active:
             raise ValueError("User account is disabled")
-            
+
+        try:
+            from backend.services.audit_service import AuditService
+            AuditService.log(db, action="login", actor_user_id=user.id, actor_email=user.email,
+                             restaurant_id=user.restaurant_id, detail=f"Login ({user.role.value if hasattr(user.role,'value') else user.role})")
+        except Exception:
+            pass
+
         return user
 
     @staticmethod

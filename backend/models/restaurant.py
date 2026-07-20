@@ -19,6 +19,19 @@ class Restaurant(Base):
     delivery_available = Column(Boolean, default=True, server_default=text('1'), nullable=False)
     delivery_notes = Column(String(500), nullable=True)
     status_message = Column(String(255), nullable=True)
+
+    # AI assistant configuration (PRD Section 11): whether the bot is enabled,
+    # its greeting, and the low-confidence escalation threshold. Stored as JSON
+    # so the shape can evolve without a migration per field.
+    ai_config = Column(JSON, nullable=True)
+
+    # Cuisine type (e.g. "Italian") — powers cuisine-based menu discovery and
+    # recommendations (PRD Modules 4 & 10).
+    cuisine = Column(String(100), nullable=True)
+
+    # Structured delivery zones for the delivery-zone workflow (PRD Section 10):
+    # [{"name": "Zone 1", "max_km": 3.0, "fee": 49, "free_over": 499, "eta_min": 40}, ...]
+    delivery_zones = Column(JSON, nullable=True)
     
     is_active = Column(Boolean, default=True, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
@@ -31,3 +44,7 @@ class Restaurant(Base):
     
     # Relationship to Knowledge Documents (no cascade delete)
     knowledge_documents = relationship("KnowledgeDocument", back_populates="restaurant")
+
+    # Menu + order domains (PRD Modules 3, 4, 6, 10)
+    products = relationship("Product", back_populates="restaurant")
+    orders = relationship("Order", back_populates="restaurant")

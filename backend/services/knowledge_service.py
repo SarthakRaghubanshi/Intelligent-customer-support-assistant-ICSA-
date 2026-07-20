@@ -7,6 +7,22 @@ from backend.core.document_types import DOCUMENT_TYPES
 
 class KnowledgeService:
     @staticmethod
+    def _audit(db: Session, actor, action: str, restaurant_id: str,
+               entity_id: str, detail: str) -> None:
+        """Record a knowledge-base change to the audit log (best-effort, never
+        breaks the calling flow). `actor` is the User already resolved by the
+        caller's validate_tenant_access — no second token decode."""
+        try:
+            from backend.services.audit_service import AuditService
+            AuditService.log(db, action=action,
+                             actor_user_id=getattr(actor, "id", None),
+                             actor_email=getattr(actor, "email", None),
+                             entity_type="knowledge_document", entity_id=entity_id,
+                             restaurant_id=restaurant_id, detail=detail)
+        except Exception:
+            pass
+
+    @staticmethod
     def _validate_document_type(document_type: str) -> None:
         """
         Validates that the given document type is one of the supported DOCUMENT_TYPES.
@@ -30,14 +46,11 @@ class KnowledgeService:
         the document type, and persists a new KnowledgeDocument.
         """
         # Validate active restaurant status, tenant isolation, and customer blocks
-        AuthService.validate_tenant_access(db, token, restaurant_id)
-        
+        actor = AuthService.validate_tenant_access(db, token, restaurant_id)
+
         # Service-level document type validation
         KnowledgeService._validate_document_type(document_type)
 
-        # TODO: Record who created this document (created_by mapping)
-        # TODO: Trigger audit logging event for document creation
-        
         doc = KnowledgeRepository.create(
             db=db,
             restaurant_id=restaurant_id,
@@ -55,6 +68,8 @@ class KnowledgeService:
             document_type=doc.document_type
         )
 
+        KnowledgeService._audit(db, actor, "knowledge.create", restaurant_id, doc.id,
+                                f"Created {document_type} document '{title}'")
         return doc
 
     @staticmethod
@@ -162,15 +177,12 @@ class KnowledgeService:
             raise ValueError("Document not found")
             
         # Validate tenant access to the document's restaurant context
-        AuthService.validate_tenant_access(db, token, doc.restaurant_id)
-        
+        actor = AuthService.validate_tenant_access(db, token, doc.restaurant_id)
+
         # If document_type is being updated, perform validation
         if "document_type" in update_dict:
             KnowledgeService._validate_document_type(update_dict["document_type"])
 
-        # TODO: Record who updated this document (updated_by mapping)
-        # TODO: Trigger audit logging event for document modification
-        
         updated_doc = KnowledgeRepository.update(db, doc_id, update_dict)
         if updated_doc:
             from backend.rag.vector_store import delete_document_from_vector_store, add_document_to_vector_store
@@ -185,6 +197,8 @@ class KnowledgeService:
                 content=updated_doc.content,
                 document_type=updated_doc.document_type
             )
+            KnowledgeService._audit(db, actor, "knowledge.update", updated_doc.restaurant_id,
+                                    updated_doc.id, f"Updated document '{updated_doc.title}'")
         return updated_doc
 
     @staticmethod
@@ -197,17 +211,18 @@ class KnowledgeService:
             return False
             
         # Validate tenant access to the document's restaurant context
-        AuthService.validate_tenant_access(db, token, doc.restaurant_id)
+        actor = AuthService.validate_tenant_access(db, token, doc.restaurant_id)
 
-        # TODO: Trigger audit logging event for document deletion
-        
         from backend.rag.vector_store import delete_document_from_vector_store
         delete_document_from_vector_store(
             restaurant_id=doc.restaurant_id,
             doc_id=doc.id
         )
 
-        return KnowledgeRepository.soft_delete(db, doc_id)
+        result = KnowledgeRepository.soft_delete(db, doc_id)
+        KnowledgeService._audit(db, actor, "knowledge.delete", doc.restaurant_id, doc_id,
+                                f"Deleted document '{doc.title}'")
+        return result
 
     @staticmethod
     def get_document_count(db: Session, token: str, restaurant_id: str) -> int:

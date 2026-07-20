@@ -21,7 +21,7 @@ from backend.classifiers.sentiment_classifier import classify_sentiment
 from backend.classifiers.language_detector import detect_language
 from backend.services.conversation_orchestrator import ConversationOrchestrator
 
-def generate_response(user_message: str, restaurant_id: str = "Restaurant_A", return_dict: bool = False, db = None) -> Union[str, Dict[str, Any]]:
+def generate_response(user_message: str, restaurant_id: str = "Restaurant_A", return_dict: bool = False, db = None, customer_id: str = None, conversation_id: str = None) -> Union[str, Dict[str, Any]]:
     """
     Sends a message to Google Gemini API grounded in the restaurant knowledge base,
     delegating the pipeline execution to ConversationOrchestrator.
@@ -41,7 +41,9 @@ def generate_response(user_message: str, restaurant_id: str = "Restaurant_A", re
             question=user_message,
             intent_classifier=classify_intent,
             sentiment_classifier=classify_sentiment,
-            language_detector=detect_language
+            language_detector=detect_language,
+            conversation_id=conversation_id,
+            customer_id=customer_id
         )
 
         # Handle Gemini API failure/quota exceptions raised through the orchestrator/RAGService

@@ -33,3 +33,6 @@ class User(Base):
     restaurant_id = Column(String(36), ForeignKey("restaurants.id"), nullable=True)
     restaurant = relationship("Restaurant", back_populates="users")
 
+    # Orders placed by this user (customers). PRD Modules 3, 10.
+    orders = relationship("Order", back_populates="customer")
+

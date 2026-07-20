@@ -109,7 +109,10 @@ def retrieve_relevant_chunks_with_metadata(restaurant_id: str, query: str) -> Li
             "content": doc.page_content,
             "document_id": doc.metadata.get("document_id"),
             "title": doc.metadata.get("source"),
-            "document_type": doc.metadata.get("document_type")
+            "document_type": doc.metadata.get("document_type"),
+            # Distance score (lower = closer). Included so the RAG service does
+            # not need a second embedding round-trip just to obtain scores.
+            "score": float(score),
         })
 
     return retrieved_chunks

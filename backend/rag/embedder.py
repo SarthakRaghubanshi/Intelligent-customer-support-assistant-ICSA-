@@ -6,6 +6,7 @@ from typing import List
 from dotenv import load_dotenv
 import google.generativeai as genai
 from langchain_core.embeddings import Embeddings
+from backend.core.gemini_client import EMBED_MODEL
 
 # Resolve root dir
 current_file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -65,7 +66,7 @@ class GeminiEmbedder(Embeddings):
         try:
             response = self._call_with_retry(
                 genai.embed_content,
-                model="models/gemini-embedding-2",
+                model=EMBED_MODEL,
                 content=sanitized_text,
                 task_type="retrieval_query"
             )
@@ -86,7 +87,7 @@ class GeminiEmbedder(Embeddings):
         try:
             response = self._call_with_retry(
                 genai.embed_content,
-                model="models/gemini-embedding-2",
+                model=EMBED_MODEL,
                 content=sanitized_texts,
                 task_type="retrieval_document"
             )

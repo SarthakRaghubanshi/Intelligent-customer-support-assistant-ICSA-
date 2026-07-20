@@ -5,6 +5,15 @@ import datetime
 from typing import Dict, Any, Callable, Optional
 from sqlalchemy.orm import Session
 
+# Menu/knowledge content contains characters like the rupee sign (₹). Ensure
+# stdout/stderr can carry UTF-8 so debug logging never crashes on Windows
+# consoles that default to a legacy code page (cp1252).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 # Ensure proper project root path imports
 current_file_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.dirname(current_file_dir) if "services" in current_file_dir else current_file_dir
@@ -35,7 +44,8 @@ class ConversationOrchestrator:
         intent_classifier: Callable = None,
         sentiment_classifier: Callable = None,
         language_detector: Callable = None,
-        conversation_id: Optional[str] = None
+        conversation_id: Optional[str] = None,
+        customer_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Orchestrates classifiers, rules, RAG, and logs.
@@ -56,6 +66,24 @@ class ConversationOrchestrator:
             raise ValueError("User message cannot be empty.")
 
         start_time = time.perf_counter()
+
+        # 1b. Respect the restaurant's AI assistant toggle (PRD Section 11).
+        ai_config = {}
+        try:
+            from backend.services.restaurant_service import RestaurantService
+            ai_config = RestaurantService.get_ai_config(db, restaurant_id)
+        except Exception:
+            ai_config = {}
+        if ai_config.get("ai_enabled") is False:
+            return {
+                "answer": "Our AI assistant is currently turned off for this restaurant. "
+                          "A team member will get back to you shortly.",
+                "intent": "Disabled", "sentiment": "Neutral", "language": "English",
+                "language_code": "en", "escalation_result": {"escalate": True, "reason": "AI Disabled"},
+                "sources": [], "chunks_used": 0, "prompt": "", "error": False, "exception": None,
+                "intent_info": {"intent": "Disabled", "confidence": 0.0, "layer": "Config"},
+                "language_info": {"language": "English", "code": "en", "confidence": 0.0, "layer": "Config"},
+            }
 
         # 2. Run Intent Classification with Fault-Tolerant Fallback
         fn_intent = intent_classifier or prod_classify_intent
@@ -98,7 +126,9 @@ class ConversationOrchestrator:
                 intent=intent_result["intent"],
                 sentiment=sentiment_result["sentiment"],
                 confidence=intent_result["confidence"],
-                query=question
+                query=question,
+                low_confidence_threshold=ai_config.get("low_confidence_threshold", 0.60),
+                enabled_rules=ai_config.get("enabled_rules")
             )
             
             # Auto-creation hook for Step 10 Escalation Events
@@ -116,9 +146,90 @@ class ConversationOrchestrator:
                 "reason": "Escalation Evaluation Failed"
             }
 
-        # 6. Delegate to RAGService (which handles retrieval, threshold checks, prompt compilation, and Gemini call)
-        # Note: We pass db, restaurant_id, and question with exactly 3 positional arguments to match verify_customer_chat.py
-        rag_res = RAGService.answer_question(db, restaurant_id, question)
+        # 6. Answer generation.
+        # (a) Domain routing first: order status/modification, menu discovery, and
+        #     personalized recommendations are answered from live structured data
+        #     (orders/products tables) so order facts are never hallucinated.
+        # (b) Everything else (FAQs, policies, delivery/pickup, general questions)
+        #     goes to the RAG knowledge pipeline, with NLU metadata forwarded so
+        #     tone (sentiment) and language actually shape the generated answer.
+        nlu_metadata = {
+            "intent": intent_result.get("intent"),
+            "sentiment": sentiment_result.get("sentiment"),
+            "language": language_result.get("language"),
+            "language_code": language_result.get("code"),
+        }
+
+        domain_res = None
+        try:
+            from backend.services.assistant_router import route as domain_route
+            domain_res = domain_route(db, restaurant_id, customer_id, question, intent_result["intent"])
+        except Exception as e:
+            print(f"Domain routing error: {str(e)}", file=sys.stderr)
+            domain_res = None
+
+        if domain_res is not None:
+            # Domain answers are English templates; translate to the detected
+            # language so every answer path honors multilingual support (Module 9).
+            answer_text_domain = domain_res.get("answer", "")
+            _lang = language_result.get("language")
+            if answer_text_domain and _lang and str(_lang).strip().lower() not in ("english", "unknown", ""):
+                try:
+                    from backend.core.gemini_client import translate_text
+                    answer_text_domain = translate_text(answer_text_domain, _lang)
+                except Exception:
+                    pass
+            rag_res = {
+                "answer": answer_text_domain,
+                "sources": domain_res.get("sources", []),
+                "chunks_used": 0,
+                "best_score": 0.0,
+                "rag_decision": "DOMAIN",
+                "response_source": domain_res.get("response_source", "Domain"),
+                "prompt": "",
+            }
+        else:
+            # (c) Smart FAQ engine (Module 5): try a curated FAQ match first — a
+            #     deterministic, verbatim answer that cannot hallucinate. Falls
+            #     back to RAG when no curated question matches confidently.
+            faq_res = None
+            try:
+                from backend.services.faq_service import FaqService
+                faq_res = FaqService.answer(db, restaurant_id, question)
+            except Exception:
+                faq_res = None
+
+            if faq_res is not None:
+                faq_answer = faq_res.get("answer", "")
+                _lang = language_result.get("language")
+                if faq_answer and _lang and str(_lang).strip().lower() not in ("english", "unknown", ""):
+                    try:
+                        from backend.core.gemini_client import translate_text
+                        faq_answer = translate_text(faq_answer, _lang)
+                    except Exception:
+                        pass
+                rag_res = {
+                    "answer": faq_answer, "sources": [], "chunks_used": 0,
+                    "best_score": 0.0, "rag_decision": "FAQ",
+                    "response_source": "FAQ Engine", "prompt": "",
+                }
+            else:
+                # (d) RAG knowledge pipeline, with multi-turn memory: give the LLM
+                #     the recent conversation turns so it can resolve follow-ups
+                #     (Module 1). Domain answers above are single-turn by design.
+                history = []
+                if conversation_id:
+                    try:
+                        from backend.repositories.message_repository import MessageRepository
+                        msgs = MessageRepository.list_by_conversation(db, conversation_id)
+                        recent = [m for m in msgs if m.content and m.content.strip()]
+                        # Drop the just-persisted current user question if it's the last row.
+                        if recent and recent[-1].role == "user" and recent[-1].content.strip() == question.strip():
+                            recent = recent[:-1]
+                        history = [{"role": m.role, "content": m.content} for m in recent[-6:]]
+                    except Exception:
+                        history = []
+                rag_res = RAGService.answer_question(db, restaurant_id, question, metadata=nlu_metadata, history=history)
 
         # RAGService returns:
         # {
@@ -227,9 +338,12 @@ class ConversationOrchestrator:
             "escalation_result": escalation_result,
             "sources": response_sources,
             "chunks_used": chunks_used,
+            "latency_ms": latency_ms,
+            "response_source": response_source,
             "prompt": raw_prompt,
             "error": rag_res.get("error", False),
             "exception": rag_res.get("exception", None),
             "intent_info": intent_result,
+            "sentiment_info": sentiment_result,
             "language_info": language_result
         }

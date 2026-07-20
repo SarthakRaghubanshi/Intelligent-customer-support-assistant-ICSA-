@@ -16,23 +16,25 @@ if backend_dir not in sys.path:
 # Consume the existing Gemini service state (genai client reference and pre-resolved API key)
 # Removed top-level import to prevent circular dependencies.
 
-SENTIMENT_CONFIDENCE_MAP = {
-    "Positive": 0.99,
-    "Negative": 0.95,
-    "Neutral": 0.90
-}
+# Rule-layer confidence is derived from how strongly the text matches (number of
+# sentiment cues), NOT a flat constant — a single weak cue scores lower than
+# several strong ones, so the value actually reflects the input signal.
+def _signal_confidence(match_count: int, base: float, step: float, cap: float) -> float:
+    return round(min(cap, base + step * match_count), 2)
+
 
 def classify_sentiment_rules(query: str) -> Optional[Dict[str, Any]]:
     """
     Evaluates basic keywords and regular expressions to determine
-    the query's sentiment locally (Layer 1).
+    the query's sentiment locally (Layer 1). Confidence scales with the number
+    of matched cues (signal strength).
     """
     normalized = query.strip().lower()
 
     # Define keyword regex patterns
-    pos_pattern = r'\b(excellent|amazing|great|awesome|love[ds]?|fantastic|wonderful|good)\b'
+    pos_pattern = r'\b(excellent|amazing|great|awesome|love[ds]?|fantastic|wonderful|good|perfect|delicious|happy|thank)\b'
     neg_pattern = (
-        r'\b(bad|terrible|worst|cold\s+food|late\s+delivery|burnt\s+food|cold|burnt|late|awful|horrible|poor|disappointed)\b|'
+        r'\b(bad|terrible|worst|cold\s+food|late\s+delivery|burnt\s+food|cold|burnt|late|awful|horrible|poor|disappointed|angry|unacceptable|refund|disgusting|ruined)\b|'
         r'\bslow\s+delivery\b|'
         r'\bdelivery\s+(was|is)\s+slow\b|'
         r'\bservice\s+(was|is)\s+slow\b|'
@@ -43,39 +45,36 @@ def classify_sentiment_rules(query: str) -> Optional[Dict[str, Any]]:
         r'price|cost|address|phone\s+number|store\s+hours|delivery\s+time|pickup\s+information)\b'
     )
 
-    has_pos = bool(re.search(pos_pattern, normalized))
-    has_neg = bool(re.search(neg_pattern, normalized))
-    has_neutral = bool(re.search(neutral_pattern, normalized))
+    pos_count = len(re.findall(pos_pattern, normalized))
+    neg_count = len(re.findall(neg_pattern, normalized))
+    neutral_count = len(re.findall(neutral_pattern, normalized))
 
     # 1. Mixed Sentiment Check: If both positive and negative signals are found, route to Gemini.
-    if has_pos and has_neg:
+    if pos_count and neg_count:
         return None
 
-    # 2. Obvious Positive Check
-    if has_pos:
-        sentiment = "Positive"
+    # 2. Obvious Positive Check — confidence grows with the number of positive cues.
+    if pos_count:
         return {
-            "sentiment": sentiment,
-            "confidence": SENTIMENT_CONFIDENCE_MAP[sentiment],
-            "layer": "Rule-Based"
+            "sentiment": "Positive",
+            "confidence": _signal_confidence(pos_count, base=0.62, step=0.12, cap=0.96),
+            "layer": "Rule-Based",
         }
 
     # 3. Obvious Negative Check
-    if has_neg:
-        sentiment = "Negative"
+    if neg_count:
         return {
-            "sentiment": sentiment,
-            "confidence": SENTIMENT_CONFIDENCE_MAP[sentiment],
-            "layer": "Rule-Based"
+            "sentiment": "Negative",
+            "confidence": _signal_confidence(neg_count, base=0.64, step=0.12, cap=0.97),
+            "layer": "Rule-Based",
         }
 
-    # 4. Obvious Neutral Check
-    if has_neutral:
-        sentiment = "Neutral"
+    # 4. Obvious Neutral Check — inherently a weaker signal, so lower confidence.
+    if neutral_count:
         return {
-            "sentiment": sentiment,
-            "confidence": SENTIMENT_CONFIDENCE_MAP[sentiment],
-            "layer": "Rule-Based"
+            "sentiment": "Neutral",
+            "confidence": _signal_confidence(neutral_count, base=0.55, step=0.08, cap=0.85),
+            "layer": "Rule-Based",
         }
 
     return None
@@ -85,13 +84,13 @@ def classify_sentiment_gemini(query: str) -> Dict[str, Any]:
     Sends the user message to Gemini API as fallback (Layer 2)
     to classify into Positive, Neutral, or Negative in structured JSON.
     """
-    from backend.gemini_service import genai, GEMINI_API_KEY
+    from backend.core.gemini_client import genai, GEMINI_API_KEY, CHAT_MODEL
     if not GEMINI_API_KEY:
         return {"sentiment": "Neutral", "confidence": 0.0, "layer": "Gemini-Based (Fallback - Missing Key)"}
 
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel(CHAT_MODEL)
 
         system_instruction = (
             "You are a highly precise sentiment classification engine for a pizza restaurant support chatbot.\n"

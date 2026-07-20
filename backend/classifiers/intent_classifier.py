@@ -6,7 +6,9 @@ from typing import Dict, Any, Optional
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# Calibrated confidence mapping constant
+# Per-intent confidence CAP. Actual confidence is derived from how many intent
+# cues the query contains (signal strength) — not a flat constant — so a single
+# weak cue scores lower than several strong ones.
 INTENT_CONFIDENCE_MAP = {
     "General Greeting": 0.99,
     "Refund Inquiry": 0.95,
@@ -19,6 +21,28 @@ INTENT_CONFIDENCE_MAP = {
     "Store Information": 0.90,
     "Complaint": 0.90
 }
+
+# Cue words counted to derive signal-based confidence per intent.
+_INTENT_CUES = {
+    "Escalation Request": r'\b(manager|human|agent|representative|escalate|real\s+person|support)\b',
+    "Refund Inquiry": r'\b(refund|money\s*back|reimburse|charge|charged)\b',
+    "Complaint": r'\b(cold|late|wrong|burnt|bad|horrible|terrible|disgusting|issue|problem|missing|hair|awful|complaint|ruined)\b',
+    "Order Tracking": r'\b(track|status|where|order|food|dispatched|delivery|tracking|progress|arrive|confirmed)\b',
+    "Order Modification": r'\b(cancel|change|modify|edit|add|remove|update|topping|item|instructions|contact)\b',
+    "Pickup Inquiry": r'\b(pickup|pick\s+up|collect|takeaway|curbside)\b',
+    "Store Information": r'\b(hours|open|timings|address|location|phone|contact|located|store|business)\b',
+    "Delivery Inquiry": r'\b(deliver|delivery|deliveries|area|zone|charge|fee|radius)\b',
+    "Menu Inquiry": r'\b(menu|topping|price|cost|dish|dessert|drink|beverage|side|crust|ingredient|gluten|vegan|vegetarian|pizza|cheese|recommend|suggest|popular)\b',
+    "General Greeting": r'\b(hello|hi|hey|good\s+morning|good\s+afternoon|good\s+evening|yo)\b',
+}
+
+
+def _intent_conf(intent: str, text: str) -> float:
+    """Confidence for a rule-matched intent, scaled by the number of cue words."""
+    cap = INTENT_CONFIDENCE_MAP.get(intent, 0.90)
+    pattern = _INTENT_CUES.get(intent)
+    count = len(re.findall(pattern, text)) if pattern else 1
+    return round(min(cap, 0.62 + 0.12 * max(1, count)), 2)
 
 # Locate and load the .env file from the project root folder.
 classifiers_dir = os.path.dirname(os.path.abspath(__file__))
@@ -47,14 +71,14 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
        re.search(r'\bsomeone\s+from\s+support\b', normalized) or \
        re.search(r'\bhuman\s+support\b', normalized):
         intent = "Escalation Request"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+        return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     # 2. Refund Inquiry
     if re.search(r'\brefund\b', normalized) or \
        re.search(r'\bmoney\s*back\b', normalized) or \
        re.search(r'\breimburse\b', normalized):
         intent = "Refund Inquiry"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+        return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     # 3. Complaint
     if re.search(r'\bcold\b', normalized) or \
@@ -79,7 +103,7 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
        re.search(r'\bsent\s+me\b.*\binstead\s+of\b', normalized) or \
        re.search(r'\bmissing\b', normalized):
         intent = "Complaint"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+        return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     # 4. Order Tracking
     if re.search(r'\btrack\b', normalized) or \
@@ -94,7 +118,7 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
        re.search(r'\btracking\b', normalized) or \
        re.search(r'\bwhere\s+is\s+my\b.*\b(pizza|food|order)\b', normalized):
         intent = "Order Tracking"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+        return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     # 5. Order Modification
     if re.search(r'\bcancel\b.*\border\b', normalized) or \
@@ -119,7 +143,7 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
        re.search(r'\bchange\b.*\btoppings?\b', normalized) or \
        re.search(r'\badd\b.*\b(soda|drink|topping|item)\b', normalized):
         intent = "Order Modification"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+        return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     # 6. Pickup Inquiry
     if re.search(r'\bpickup\b', normalized) or \
@@ -127,7 +151,7 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
        re.search(r'\bcollect\b', normalized) or \
        re.search(r'\btakeaway\b', normalized):
         intent = "Pickup Inquiry"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+        return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     # 7. Store Information
     if re.search(r'\bhours\b', normalized) or \
@@ -145,13 +169,13 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
        re.search(r'\bcontact\s+information\b', normalized) or \
        re.search(r'\bcontact\s+info\b', normalized):
         intent = "Store Information"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+        return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     # 8. Delivery Inquiry
     if re.search(r'\bdelivery\b', normalized) or \
        re.search(r'\bdeliver(y|s|ed|ing)?\b', normalized):
         intent = "Delivery Inquiry"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+        return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     # 9. Menu Inquiry
     if re.search(r'\b(menu|toppings?|prices?|costs?|dish(es)?|desserts?|drinks?|beverages?|sides|crusts?|ingredients?|gluten\s+free|gluten-free|veg(an)?|vegetarian|pepperoni|cheese|margherita|garlic\s+bread)\b', normalized) or \
@@ -159,14 +183,14 @@ def classify_intent_rules(query: str) -> Optional[Dict[str, Any]]:
        re.match(r'^pizzas?$', normalized) or \
        re.search(r'\b(do\s+you\s+have|do\s+you\s+serve|what\s+is\s+on|ingredients\s+of)\s+pizzas?\b', normalized):
         intent = "Menu Inquiry"
-        return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+        return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     # 10. General Greeting
     if re.match(r'^(hello|hi|hey|good\s+morning|good\s+afternoon|good\s+evening|yo)[,\.!?]?(\s+.*)?$', normalized):
         words = normalized.split()
         if len(words) <= 3:
             intent = "General Greeting"
-            return {"intent": intent, "confidence": INTENT_CONFIDENCE_MAP[intent], "layer": "Rule-Based"}
+            return {"intent": intent, "confidence": _intent_conf(intent, normalized), "layer": "Rule-Based"}
 
     return None
 
@@ -181,7 +205,8 @@ def classify_intent_gemini(query: str) -> Dict[str, Any]:
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        from backend.core.gemini_client import CHAT_MODEL
+        model = genai.GenerativeModel(CHAT_MODEL)
 
         system_instruction = (
             "You are a highly precise intent classification engine for a pizza restaurant support chatbot.\n"
