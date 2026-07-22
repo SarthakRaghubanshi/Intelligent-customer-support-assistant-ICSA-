@@ -109,22 +109,27 @@ def run_tenant_analytics_tests():
         print("\n2. Testing Admin Global Aggregations...")
         global_stats = AnalyticsService.get_global_analytics(db, admin_token)
         
-        # Calculate expected values manually
-        stats_a_mock = AnalyticsService._generate_mock_restaurant_analytics(restaurant_a.id, restaurant_a.name)
-        stats_b_mock = AnalyticsService._generate_mock_restaurant_analytics(restaurant_b.id, restaurant_b.name)
-        
-        expected_total_tickets = stats_a_mock["total_tickets"] + stats_b_mock["total_tickets"]
-        expected_csat = round((stats_a_mock["csat"] + stats_b_mock["csat"]) / 2.0, 2)
-        expected_resolution_rate = round((stats_a_mock["resolution_rate"] + stats_b_mock["resolution_rate"]) / 2.0, 2)
-        expected_escalations = stats_a_mock["escalations"] + stats_b_mock["escalations"]
-        
+        # Compute expected values from the real per-restaurant aggregations,
+        # mirroring get_global_analytics' pooled logic exactly.
+        stats_a_mock = AnalyticsService._compute_restaurant_analytics(db, restaurant_a.id, restaurant_a.name)
+        stats_b_mock = AnalyticsService._compute_restaurant_analytics(db, restaurant_b.id, restaurant_b.name)
+        per = [stats_a_mock, stats_b_mock]
+
+        expected_total_tickets = sum(s["total_tickets"] for s in per)
+        expected_escalations = sum(s["escalations"] for s in per)
+        # CSAT is averaged only over restaurants that actually have feedback.
+        csat_vals = [s["csat"] for s in per if s["feedback_count"] > 0]
+        expected_csat = round(sum(csat_vals) / len(csat_vals), 2) if csat_vals else 0.0
+        # Resolution rate is derived from pooled totals, not an average of rates.
+        expected_resolution_rate = round(((expected_total_tickets - expected_escalations) / expected_total_tickets) * 100, 1) if expected_total_tickets else 0.0
+
         assert global_stats["total_tickets"] == expected_total_tickets
         assert global_stats["csat"] == expected_csat
         assert global_stats["resolution_rate"] == expected_resolution_rate
         assert global_stats["escalations"] == expected_escalations
         assert len(global_stats["sentiment_trend"]) == 7
-        
-        # Check daily averages on sentiment trend
+
+        # Check daily averages on sentiment trend (averaged across both restaurants)
         for i in range(7):
             avg_score = round((stats_a_mock["sentiment_trend"][i]["score"] + stats_b_mock["sentiment_trend"][i]["score"]) / 2.0, 2)
             assert global_stats["sentiment_trend"][i]["score"] == avg_score

@@ -8,6 +8,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.append(project_root)
+# frontend/ must be importable so `from utils.icons import ...` resolves the same
+# way it does under `streamlit run frontend/app.py`.
+_frontend_dir = os.path.join(project_root, "frontend")
+if _frontend_dir not in sys.path:
+    sys.path.insert(0, _frontend_dir)
 
 # Set up test database path
 test_db_path = os.path.join(project_root, "data", "test_customer_chat.db")
@@ -96,7 +101,10 @@ def run_chat_ui_tests():
         
         greeting = mock_state.messages[0]
         assert greeting["role"] == "assistant"
-        assert f"Assistant for {restaurant_a.name}" in greeting["content"]
+        # The greeting is restaurant-specific (from the restaurant's configured/
+        # default AI greeting), so it must name the restaurant.
+        assert restaurant_a.name in greeting["content"]
+        assert len(greeting["content"]) > 0
         assert "sources" in greeting and greeting["sources"] == []
         assert "timestamp" in greeting, "Timestamp metadata missing on greeting message"
         
@@ -133,7 +141,8 @@ def run_chat_ui_tests():
         # Assert history was cleared and initialized specifically to Beta
         assert mock_state.selected_restaurant == restaurant_b.id
         assert len(mock_state.messages) == 1, "Chat history was not cleared/evicted upon switching restaurant context"
-        assert f"Assistant for {restaurant_b.name}" in mock_state.messages[0]["content"]
+        # Greeting is restaurant-specific, so it must name the new restaurant.
+        assert restaurant_b.name in mock_state.messages[0]["content"]
         print("✓ Context switching successfully clears previous log history and seeds restaurant welcome greeting.")
 
         # =====================================================================
@@ -155,8 +164,12 @@ def run_chat_ui_tests():
         with mock.patch("backend.services.conversation_orchestrator.ConversationOrchestrator.orchestrate", return_value=mock_orch_response) as mock_orch:
             res = process_chat_message(db, restaurant_b.id, "Do you have gluten free buns?")
             
-            # Assert process_chat_message delegates directly to ConversationOrchestrator
-            mock_orch.assert_called_once_with(db, restaurant_b.id, "Do you have gluten free buns?")
+            # Assert process_chat_message delegates directly to ConversationOrchestrator.
+            # The orchestrator now also receives conversation_id/customer_id (multi-turn memory).
+            mock_orch.assert_called_once_with(
+                db, restaurant_b.id, "Do you have gluten free buns?",
+                conversation_id=None, customer_id=None,
+            )
             assert res == mock_orch_response
             print("✓ process_chat_message() delegates correctly to ConversationOrchestrator.orchestrate.")
 

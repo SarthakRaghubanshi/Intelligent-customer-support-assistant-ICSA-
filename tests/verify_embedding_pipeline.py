@@ -87,7 +87,7 @@ def run_embedding_pipeline_tests():
     persist_dir = os.path.join(project_root, "data", "chroma_db", test_restaurant.id)
     
     if os.path.exists(persist_dir):
-        shutil.rmtree(persist_dir)
+        shutil.rmtree(persist_dir, ignore_errors=True)
         
     try:
         # Create store initially (will populate embeddings function)
@@ -144,7 +144,7 @@ def run_embedding_pipeline_tests():
         valid_persist_dir = os.path.join(project_root, "data", "chroma_db", valid_restaurant.id)
         
         if os.path.exists(valid_persist_dir):
-            shutil.rmtree(valid_persist_dir)
+            shutil.rmtree(valid_persist_dir, ignore_errors=True)
             
         db_valid = create_vector_store(valid_restaurant.id, os.path.join(project_root, "data", "Restaurant_A"), valid_persist_dir)
         
@@ -154,7 +154,7 @@ def run_embedding_pipeline_tests():
         
         # Clean up valid_persist_dir
         if os.path.exists(valid_persist_dir):
-            shutil.rmtree(valid_persist_dir)
+            shutil.rmtree(valid_persist_dir, ignore_errors=True)
 
     finally:
         db_session.close()
@@ -162,7 +162,7 @@ def run_embedding_pipeline_tests():
         if os.path.exists(test_db_path):
             os.remove(test_db_path)
         if os.path.exists(persist_dir):
-            shutil.rmtree(persist_dir)
+            shutil.rmtree(persist_dir, ignore_errors=True)
 
     print("\n✓ ALL EMBEDDING PIPELINE VERIFICATION TESTS PASSED SUCCESSFULLY!")
     print("=" * 80)

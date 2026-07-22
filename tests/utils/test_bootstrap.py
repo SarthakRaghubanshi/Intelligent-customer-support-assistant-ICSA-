@@ -6,6 +6,7 @@ import random
 import uuid
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 import google.generativeai as genai
 
 # Ensure project root is in the Python path
@@ -116,8 +117,14 @@ def bootstrap_test_database(db_url: str = None) -> sessionmaker:
     connect_args = {}
     if db_url.startswith("sqlite"):
         connect_args["check_same_thread"] = False
-        
-    engine = create_engine(db_url, connect_args=connect_args)
+
+    engine_kwargs = {"connect_args": connect_args}
+    # NullPool releases the SQLite file handle on session close so Windows test
+    # teardown can remove the .db file. NOT for ':memory:' (single-connection DB
+    # would lose its schema between statements under NullPool).
+    if db_url.startswith("sqlite") and ":memory:" not in db_url:
+        engine_kwargs["poolclass"] = NullPool
+    engine = create_engine(db_url, **engine_kwargs)
     Base.metadata.create_all(bind=engine)
     
     return sessionmaker(autocommit=False, autoflush=False, bind=engine)

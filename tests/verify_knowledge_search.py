@@ -66,7 +66,7 @@ def run_knowledge_search_tests():
         for rest_id in created_restaurants:
             p_dir = os.path.join(project_root, "data", "chroma_db", rest_id)
             if os.path.exists(p_dir):
-                shutil.rmtree(p_dir)
+                shutil.rmtree(p_dir, ignore_errors=True)
 
         # =====================================================================
         # TEST 1: Graceful Empty State Handling
@@ -204,7 +204,7 @@ def run_knowledge_search_tests():
         for rest_id in created_restaurants:
             p_dir = os.path.join(project_root, "data", "chroma_db", rest_id)
             if os.path.exists(p_dir):
-                shutil.rmtree(p_dir)
+                shutil.rmtree(p_dir, ignore_errors=True)
 
     print("\n✓ ALL RESTAURANT KNOWLEDGE SEARCH & RETRIEVAL VERIFICATION TESTS PASSED SUCCESSFULLY!")
     print("=" * 80)

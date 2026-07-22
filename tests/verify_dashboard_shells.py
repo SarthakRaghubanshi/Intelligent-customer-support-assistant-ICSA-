@@ -6,6 +6,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.append(project_root)
+# frontend/ must be importable so `from utils.icons import ...` resolves the same
+# way it does under `streamlit run frontend/app.py`.
+_frontend_dir = os.path.join(project_root, "frontend")
+if _frontend_dir not in sys.path:
+    sys.path.insert(0, _frontend_dir)
 
 # Setup a mock streamlit environment for testing session state
 import streamlit as st

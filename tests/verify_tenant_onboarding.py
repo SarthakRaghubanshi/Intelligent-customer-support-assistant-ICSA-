@@ -175,21 +175,24 @@ def run_tenant_onboarding_tests():
         print("✓ Customer registered successfully without restaurant context.")
 
         # =====================================================================
-        # TEST 7: Admin Registration Unchanged (PASS expected)
+        # TEST 7: Admin Self-Registration Is Blocked (security control)
+        # Administrator accounts must never be creatable through public
+        # registration — they are seeded/provisioned only.
         # =====================================================================
-        print("\nTest 7: Verifying admin registration remains unchanged...")
-        admin_user = AuthService.register_user(
-            db=db,
-            email="admin_new@saas.com",
-            password_raw="securepass123",
-            role=UserRole.ADMIN,
-            first_name="Super",
-            last_name="User"
-        )
-        assert admin_user.id is not None
-        assert admin_user.role == UserRole.ADMIN
-        assert admin_user.restaurant_id is None
-        print("✓ Admin registered successfully without restaurant context.")
+        print("\nTest 7: Verifying admin self-registration is rejected...")
+        try:
+            AuthService.register_user(
+                db=db,
+                email="admin_new@saas.com",
+                password_raw="securepass123",
+                role=UserRole.ADMIN,
+                first_name="Super",
+                last_name="User"
+            )
+            assert False, "Failed: admin account was created through public registration"
+        except PermissionError as e:
+            assert "Administrator accounts cannot be created through registration" in str(e)
+            print("✓ Admin self-registration correctly blocked.")
 
         # =====================================================================
         # TEST 8: Internal Manager Onboarding via invite_manager (PASS expected)

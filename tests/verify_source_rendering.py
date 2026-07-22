@@ -9,6 +9,11 @@ current_file_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_file_dir)
 if project_root not in sys.path:
     sys.path.append(project_root)
+# frontend/ must be importable so `from utils.icons import ...` resolves the same
+# way it does under `streamlit run frontend/app.py`.
+_frontend_dir = os.path.join(project_root, "frontend")
+if _frontend_dir not in sys.path:
+    sys.path.insert(0, _frontend_dir)
 
 # 2. Force an isolated test database
 test_db_path = os.path.join(project_root, "data", "test_source_rendering.db")
@@ -233,9 +238,9 @@ def run_source_rendering_tests():
         # Trigger rendering the customer dashboard containing the message loop
         render_customer_dashboard()
         
-        # 1. Verify st.expander is called exactly once with label "📚 View Citations & Sources"
+        # 1. Verify st.expander is called exactly once with the citations label.
         assert mock_expander.call_count == 1, f"Expected expander to be called exactly 1 time, but was called {mock_expander.call_count} times."
-        mock_expander.assert_called_with("📚 View Citations & Sources", expanded=False)
+        mock_expander.assert_called_with("View sources & citations", expanded=False)
         
         # 2. Verify citation metadata details are formatted correctly and output inside the expander
         # It should call st.markdown with document title and capitalized type
@@ -249,8 +254,10 @@ def run_source_rendering_tests():
         # Verify Caption is called with Source ID
         mock_caption.assert_called_with("Source ID: `doc-uuid-1`")
         
-        # Verify Info is called with snippet text
-        mock_info.assert_called_with("Orders cancelled within 5 mins qualify for a refund.")
+        # Verify Info is called with snippet text (assert_any_call: the dashboard
+        # emits other st.info calls too, e.g. an empty-orders notice, so we check
+        # the citation snippet was rendered at some point rather than last).
+        mock_info.assert_any_call("Orders cancelled within 5 mins qualify for a refund.")
         
         # 3. Verify empty source list (message 3) did not trigger another expander
         # This is implicitly checked because call_count is exactly 1.

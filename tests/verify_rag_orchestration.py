@@ -62,7 +62,7 @@ def run_rag_orchestration_tests():
         for rest_id in created_restaurants:
             p_dir = os.path.join(project_root, "data", "chroma_db", rest_id)
             if os.path.exists(p_dir):
-                shutil.rmtree(p_dir)
+                shutil.rmtree(p_dir, ignore_errors=True)
 
         # Create document for Restaurant Alpha
         print("Adding knowledge document to Restaurant Alpha...")
@@ -242,7 +242,7 @@ def run_rag_orchestration_tests():
         for rest_id in created_restaurants:
             p_dir = os.path.join(project_root, "data", "chroma_db", rest_id)
             if os.path.exists(p_dir):
-                shutil.rmtree(p_dir)
+                shutil.rmtree(p_dir, ignore_errors=True)
 
     print("\n✓ ALL RAG ORCHESTRATION VERIFICATION TESTS PASSED SUCCESSFULLY!")
     print("=" * 80)
