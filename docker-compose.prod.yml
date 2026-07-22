@@ -1,0 +1,23 @@
+# Production run — Docker-managed named volume (no source bind mount), production
+# env, and restart policy. Set real secrets in .env first (see .env.example).
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+services:
+  icsa:
+    build: .
+    image: icsa:latest
+    container_name: icsa
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=production
+      - SEED_ON_START=${SEED_ON_START:-true}
+    volumes:
+      - icsa_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  icsa_data:

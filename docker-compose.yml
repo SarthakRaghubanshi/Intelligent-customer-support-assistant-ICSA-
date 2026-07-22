@@ -1,0 +1,13 @@
+# Run ICSA with:  docker compose up --build
+services:
+  icsa:
+    build: .
+    container_name: icsa
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      # Persist the SQLite DB and Chroma vector index across restarts.
+      - ./data:/app/data
+    restart: unless-stopped
