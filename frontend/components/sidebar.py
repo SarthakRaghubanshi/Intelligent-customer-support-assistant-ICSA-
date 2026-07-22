@@ -9,140 +9,107 @@ if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
 from utils.session import clear_chat_history
+from utils.icons import icon, chip
+
+# role -> (internal active_view key used by app.py, workspace label, icon key)
+_WORKSPACE = {
+    "admin": ("⚙️ Admin Dashboard", "Admin Console", "admin"),
+    "restaurant": ("📊 Restaurant Dashboard", "Restaurant Console", "dashboard"),
+    "customer": ("💬 Customer Dashboard", "Customer Workspace", "chat"),
+}
+
 
 def render_sidebar():
-    """Renders the sidebar navigation and configuration controls."""
+    """Renders the sidebar: brand lockup, workspace indicator, and account controls."""
     with st.sidebar:
-        # App Branding using customized HTML
+        # --- Brand lockup ---
         st.markdown(
-            """
-            <div style='text-align: center; margin-top: 1rem; margin-bottom: 2rem;'>
-                <h1 style='color: #6C5CE7; font-size: 2.2rem; margin-bottom: 0.2rem; font-weight: 700;'>ICSA</h1>
-                <p style='color: rgba(248, 250, 252, 0.6); font-size: 0.85rem; letter-spacing: 1px; font-weight: 300;'>
-                    Intelligent Customer Support Assistant
-                </p>
-                <hr style='border: 0; border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 1.5rem 0;'/>
+            f"""
+            <div class="icsa-brand">
+                <span class="mark">{icon('concierge', 22)}</span>
+                <div>
+                    <div class="word">ICSA</div>
+                    <div class="sub">Support Concierge</div>
+                </div>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
-        
-        # Navigation controls using Streamlit automatic state binding
-        st.markdown("### 🧭 Navigation")
-        
+
         user = st.session_state.get("user", {})
         role = str(user.get("role", "customer")).strip().lower()
-        
-        if role == "admin":
-            nav_options = ["⚙️ Admin Dashboard"]
-        elif role == "restaurant":
-            nav_options = ["📊 Restaurant Dashboard"]
-        else:
-            nav_options = ["💬 Customer Dashboard"]
-            
-        # Normalize active_view state if current value is restricted
-        current_view = st.session_state.get("active_view")
-        if current_view not in nav_options:
-            st.session_state.active_view = nav_options[0]
+        view_key, ws_label, ws_icon = _WORKSPACE.get(role, _WORKSPACE["customer"])
 
-        st.selectbox(
-            "Go to Page:",
-            options=nav_options,
-            key="active_view"
-        )
-        
-        st.markdown("<br/>", unsafe_allow_html=True)
-        
-        # Conditionally display Context Settings and Simulator Controls based on role
-        if role == "admin":
-            st.markdown("### 🍔 Context Settings")
-            restaurant_options = ["All Restaurants", "Restaurant_A", "Restaurant_B", "Restaurant_C"]
-            if st.session_state.get("selected_restaurant") not in restaurant_options:
-                st.session_state.selected_restaurant = "Restaurant_A"
-            st.session_state.selected_restaurant = st.selectbox(
-                "Active Restaurant Context:",
-                options=restaurant_options,
-                index=restaurant_options.index(st.session_state.selected_restaurant),
-                help="Sets the active restaurant context for support queries and analytics."
-            )
-            st.markdown("<br/>", unsafe_allow_html=True)
-            
-            st.markdown("### ⚙️ Simulator Controls")
-            st.session_state.typing_speed = st.slider(
-                "Typing Simulation Speed (s):",
-                min_value=0.00,
-                max_value=0.10,
-                value=st.session_state.get("typing_speed", 0.02),
-                step=0.01,
-                help="Controls typing simulation delay for the chatbot's response."
-            )
-            st.markdown("<br/>", unsafe_allow_html=True)
-            
-        elif role == "restaurant":
-            st.markdown("### 🍔 Context Settings")
-            restaurant_id = user.get("restaurant_id")
-            restaurant_options = [restaurant_id] if restaurant_id else ["No Restaurant Assigned"]
-            st.session_state.selected_restaurant = restaurant_id
-            st.selectbox(
-                "Active Restaurant Context:",
-                options=restaurant_options,
-                disabled=True,
-                help="Locked to assigned restaurant context."
-            )
-            st.markdown("<br/>", unsafe_allow_html=True)
+        # One workspace per role — set the route directly (no redundant dropdown).
+        st.session_state.active_view = view_key
 
-        
-        # Clear Chat Button
-        st.button(
-            "🧹 Clear Conversation",
-            use_container_width=True,
-            on_click=clear_chat_history,
-            type="secondary"
+        st.markdown(
+            f"""
+            <div class="icsa-card" style="display:flex;align-items:center;gap:12px;padding:.75rem .9rem;margin-bottom:1rem;">
+                {chip(ws_icon, 18, 36)}
+                <div>
+                    <div style="font-weight:700;font-size:.95rem;color:var(--ink);line-height:1.1;">{ws_label}</div>
+                    <div style="color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;margin-top:2px;">{role} access</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-        st.markdown("<br/>", unsafe_allow_html=True)
+        # Admin-only: typing simulation control
+        if role == "admin":
+            with st.expander("Assistant simulator", expanded=False):
+                st.session_state.typing_speed = st.slider(
+                    "Typing speed (seconds/word)", min_value=0.00, max_value=0.10,
+                    value=st.session_state.get("typing_speed", 0.02), step=0.01,
+                )
 
-        # User Profile & Logout section
-        user = st.session_state.get("user")
+        st.button("Clear conversation", use_container_width=True, on_click=clear_chat_history)
+
+        st.markdown("<div style='height:0.6rem;'></div>", unsafe_allow_html=True)
+
+        # --- Account ---
         if user:
             first = user.get("first_name") or ""
             last = user.get("last_name") or ""
             display_name = f"{first} {last}".strip() or user.get("email")
-            role_display = user.get("role", "customer").upper()
-
             st.markdown(
                 f"""
-                <div style='padding: 1rem; background-color: rgba(108, 92, 231, 0.1); border-radius: 12px; border: 1px solid rgba(108, 92, 231, 0.2); margin-bottom: 0.8rem;'>
-                    <div style='font-weight: 600; color: #F8FAFC; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>👤 {display_name}</div>
-                    <div style='color: rgba(248, 250, 252, 0.5); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;'>{user.get("email")}</div>
-                    <div style='display: inline-block; background-color: #6C5CE7; color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-top: 6px; text-transform: uppercase;'>{role_display}</div>
+                <div class="icsa-card" style="display:flex;align-items:center;gap:11px;padding:.8rem .9rem;">
+                    {chip('user', 18, 36, bg='var(--chip)', color='var(--ink-soft)')}
+                    <div style="min-width:0;">
+                        <div style="font-weight:600;font-size:.88rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{display_name}</div>
+                        <div style="color:var(--muted);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{user.get('email')}</div>
+                    </div>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
-
             from utils.auth_helper import logout_user
-            if st.button("🚪 Log Out", use_container_width=True):
+            if st.button("Log out", use_container_width=True):
                 logout_user()
-        
-        # System status panel with metadata
+
+        # --- System status ---
         st.markdown(
-            """
-            <div style='margin-top: 1.5rem; padding: 1.2rem; background-color: rgba(30, 41, 59, 0.4); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);'>
-                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;'>
-                    <span style='font-size: 0.8rem; color: rgba(248, 250, 252, 0.6);'>Core Status</span>
-                    <span style='font-size: 0.75rem; color: #10B981; font-weight: bold;'>● Online</span>
+            f"""
+            <div class="icsa-card" style="padding:.85rem .9rem;margin-top:1rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+                    <span style="font-size:.76rem;color:var(--muted);">Status</span>
+                    <span style="font-size:.74rem;color:var(--success);font-weight:600;display:inline-flex;align-items:center;gap:5px;">
+                        <span style="width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block;"></span>Online
+                    </span>
                 </div>
-                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;'>
-                    <span style='font-size: 0.8rem; color: rgba(248, 250, 252, 0.6);'>Version</span>
-                    <span style='font-size: 0.75rem; color: #6C5CE7; font-weight: bold;'>1.0.0 (UI)</span>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+                    <span style="font-size:.76rem;color:var(--muted);">AI engine</span>
+                    <span style="font-size:.74rem;color:var(--ink-soft);font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+                        {icon('sparkles', 13, 'var(--accent)')} Google Gemini
+                    </span>
                 </div>
-                <div style='display: flex; justify-content: space-between; align-items: center;'>
-                    <span style='font-size: 0.8rem; color: rgba(248, 250, 252, 0.6);'>AI Engine</span>
-                    <span style='font-size: 0.75rem; color: rgba(248, 250, 252, 0.4);'>Mock Responses</span>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:.76rem;color:var(--muted);">Version</span>
+                    <span style="font-size:.74rem;color:var(--ink-soft);font-weight:600;font-family:var(--font-mono);">1.0.0</span>
                 </div>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
-

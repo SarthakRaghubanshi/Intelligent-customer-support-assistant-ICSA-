@@ -1,91 +1,284 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+/* =========================================================================
+   ICSA — Refined dark, minimal (Linear/Vercel discipline)
+   Near-black surfaces, near-monochrome, one restrained iris accent spent only
+   on the brand mark, primary actions, and focus. Flat surfaces, hairline
+   borders, tight type, hidden scrollbars.
+   ========================================================================= */
 
-/* Apply custom font globally */
-html, body, [class*="css"], [class*="st-"], .stMarkdown, .stText {
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+    /* Same variable NAMES the components already use — new dark values. */
+    --ink:        #ECECEE;   /* primary text */
+    --ink-soft:   #B0B0B6;   /* secondary text */
+    --muted:      #76767E;   /* faint text / captions */
+    --paper:      #0A0A0B;   /* app background */
+    --surface:    #101013;   /* cards */
+    --surface-2:  #17171B;   /* hover / secondary surface */
+    --line:       rgba(255,255,255,0.08);
+    --line-2:     rgba(255,255,255,0.13);
+
+    --accent:      #7C74FF;                      /* the single accent (iris) */
+    --accent-deep: #A79FFF;                      /* accent as text on dark */
+    --accent-soft: rgba(124,116,255,0.14);       /* accent tint / focus ring */
+    --chip:        #17171B;
+    --chip-accent: rgba(124,116,255,0.15);
+
+    --success:      #3FB950;  --success-soft: rgba(63,185,80,0.14);
+    --warn:         #D29922;  --warn-soft:    rgba(210,153,34,0.14);
+    --danger:       #F85149;  --danger-soft:  rgba(248,81,73,0.14);
+    --info:         #58A6FF;  --info-soft:    rgba(88,166,255,0.14);
+
+    --radius:    10px;
+    --radius-sm: 8px;
+    --radius-xs: 6px;
+    --shadow:    0 1px 2px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.30);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.30);
+
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-body:    'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, "SF Mono", Menlo, monospace;
 }
 
-/* Hide Default Streamlit Branding Elements */
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-div[data-testid="stDecoration"] {visibility: hidden;}
-div[data-testid="stAppDeployButton"] {visibility: hidden;}
+/* ---- Base ---------------------------------------------------------------- */
+.stApp { background: var(--paper) !important; color: var(--ink); }
+html, body, [class*="st-"], .stMarkdown, .stText, p, span, div, label, input, textarea, button, select {
+    font-family: var(--font-body);
+}
+.stApp, .stApp p, .stApp li, .stMarkdown { color: var(--ink); }
+.stApp p, .stApp li { line-height: 1.6; }
 
-/* Custom styles for Sidebar */
-section[data-testid="stSidebar"] {
-    background-color: #0b0f19 !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+/* Preserve Streamlit's Material Symbols icon font (our font rule must not clobber it). */
+[data-testid="stIconMaterial"],
+span[data-testid="stIconMaterial"],
+[data-testid="stChatMessageAvatarUser"] *,
+[data-testid="stChatMessageAvatarAssistant"] *,
+.material-icons, .material-icons-outlined,
+.material-symbols-rounded, .material-symbols-outlined {
+    font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+    font-weight: normal !important; font-style: normal !important; letter-spacing: normal !important;
 }
 
-/* Padding adjustment for the chat contents area */
-.main .block-container {
-    padding-top: 3rem !important;
+#MainMenu, footer, header[data-testid="stHeader"],
+div[data-testid="stDecoration"], div[data-testid="stAppDeployButton"],
+div[data-testid="stStatusWidget"] { display: none !important; }
+
+.stMain .block-container, [data-testid="stMainBlockContainer"] {
+    padding-top: 2.2rem !important;
     padding-bottom: 6rem !important;
-    max-width: 800px !important;
+    max-width: 1040px !important;
 }
 
-/* Style the native chat message container to feel premium and glassmorphic */
+/* ---- Type ---------------------------------------------------------------- */
+h1, h2, h3, h4, h5,
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4 {
+    font-family: var(--font-display) !important;
+    color: var(--ink) !important;
+    letter-spacing: -0.021em !important;
+    font-weight: 600 !important;
+}
+h1 { font-size: 2rem !important; letter-spacing: -0.03em !important; }
+h2 { font-size: 1.5rem !important; letter-spacing: -0.025em !important; }
+h3 { font-size: 1.18rem !important; }
+h4 { font-size: 1rem !important; }
+.stCaption, [data-testid="stCaptionContainer"], small { color: var(--muted) !important; }
+a { color: var(--accent-deep); text-decoration: none; }
+a:hover { color: #C4BEFF; }
+code, kbd { font-family: var(--font-mono); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-size: .82em; color: var(--ink-soft); border: 1px solid var(--line); }
+
+/* ---- Sidebar ------------------------------------------------------------- */
+section[data-testid="stSidebar"] {
+    background: #0C0C0E !important;
+    border-right: 1px solid var(--line) !important;
+}
+section[data-testid="stSidebar"] * { color: var(--ink); }
+section[data-testid="stSidebar"] .stMarkdown p { color: var(--ink-soft); }
+
+/* ---- Buttons ------------------------------------------------------------- */
+.stButton > button, .stFormSubmitButton > button, .stDownloadButton > button {
+    font-family: var(--font-body) !important;
+    font-weight: 500 !important;
+    font-size: .9rem !important;
+    border-radius: var(--radius-sm) !important;
+    border: 1px solid var(--line-2) !important;
+    background: var(--surface-2) !important;
+    color: var(--ink) !important;
+    min-height: 40px !important;
+    padding: 0.5rem 1.05rem !important;
+    transition: background .14s ease, border-color .14s ease, transform .12s ease !important;
+    box-shadow: none !important;
+}
+.stButton > button:hover, .stFormSubmitButton > button:hover {
+    background: #202027 !important;
+    border-color: var(--line-2) !important;
+    color: var(--ink) !important;
+}
+.stButton > button:active, .stFormSubmitButton > button:active { transform: translateY(1px) !important; }
+.stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"],
+button[data-testid="stBaseButton-primary"], button[data-testid="stBaseButton-primaryFormSubmit"] {
+    background: var(--accent) !important;
+    border: 1px solid var(--accent) !important;
+    color: #fff !important;
+}
+.stButton > button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover {
+    background: #8B84FF !important; border-color: #8B84FF !important; color: #fff !important;
+}
+:focus-visible { outline: 2px solid var(--accent) !important; outline-offset: 2px !important; }
+
+/* ---- Inputs (single border on the baseweb wrapper — fixes double border) -- */
+[data-testid="stTextInput"] div[data-baseweb="input"],
+[data-testid="stTextArea"] div[data-baseweb="textarea"],
+[data-testid="stTextArea"] div[data-baseweb="base-input"],
+[data-testid="stNumberInput"] div[data-baseweb="input"],
+[data-baseweb="select"] > div {
+    background: var(--surface) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: none !important;
+}
+/* Inner input/textarea carry NO border/background of their own */
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea,
+[data-testid="stNumberInput"] input,
+[data-baseweb="base-input"], [data-baseweb="input"] > div {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--ink) !important;
+}
+[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
+[data-testid="stTextArea"] div[data-baseweb="textarea"]:focus-within,
+[data-testid="stTextArea"] div[data-baseweb="base-input"]:focus-within,
+[data-testid="stNumberInput"] div[data-baseweb="input"]:focus-within,
+[data-baseweb="select"] > div:focus-within {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px var(--accent-soft) !important;
+}
+input::placeholder, textarea::placeholder { color: var(--muted) !important; }
+label, [data-testid="stWidgetLabel"] p { color: var(--ink-soft) !important; font-weight: 500 !important; font-size: .85rem !important; }
+[data-baseweb="popover"], [data-baseweb="menu"], [role="listbox"] { background: var(--surface-2) !important; border: 1px solid var(--line-2) !important; border-radius: var(--radius-sm) !important; }
+
+/* ---- Chat ---------------------------------------------------------------- */
 div[data-testid="stChatMessage"] {
-    background-color: rgba(30, 41, 59, 0.35) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    border-radius: 16px !important;
-    padding: 1.2rem !important;
-    margin-bottom: 0.8rem !important;
-    backdrop-filter: blur(8px) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: var(--radius) !important;
+    padding: 1rem 1.15rem !important;
+    margin-bottom: 0.6rem !important;
+    box-shadow: none !important;
 }
-
-/* Add custom focus indicator hover effect */
-div[data-testid="stChatMessage"]:hover {
-    border-color: rgba(108, 92, 231, 0.35) !important;
-    background-color: rgba(30, 41, 59, 0.55) !important;
-    box-shadow: 0 6px 16px rgba(108, 92, 231, 0.08) !important;
-    transform: translateY(-1px) !important;
+div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) { background: #131317 !important; }
+[data-testid="stChatMessageAvatarUser"], [data-testid="stChatMessageAvatarAssistant"] {
+    background: var(--surface-2) !important; color: var(--accent-deep) !important; border: 1px solid var(--line) !important;
 }
-
-/* Modernize chat input container and box */
 div[data-testid="stChatInput"] {
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 16px !important;
-    background-color: rgba(30, 41, 59, 0.8) !important;
-    backdrop-filter: blur(12px) !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2) !important;
-    margin-bottom: 1rem !important;
+    border: 1px solid var(--line) !important;
+    border-radius: var(--radius) !important;
+    background: var(--surface) !important;
+    box-shadow: none !important;
+}
+div[data-testid="stChatInput"] textarea { color: var(--ink) !important; font-size: .95rem !important; }
+div[data-testid="stChatInput"]:focus-within { border-color: var(--accent) !important; box-shadow: 0 0 0 3px var(--accent-soft) !important; }
+
+/* ---- Tabs ---------------------------------------------------------------- */
+.stTabs [data-baseweb="tab-list"] { gap: 2px !important; border-bottom: 1px solid var(--line) !important; background: transparent !important; }
+.stTabs [data-baseweb="tab"] {
+    font-family: var(--font-body) !important; font-weight: 500 !important; font-size: .9rem !important;
+    color: var(--muted) !important; background: transparent !important;
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0 !important; padding: 0.5rem 0.85rem !important;
+}
+.stTabs [data-baseweb="tab"]:hover { color: var(--ink-soft) !important; }
+.stTabs [data-baseweb="tab"][aria-selected="true"] { color: var(--ink) !important; }
+.stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { background: var(--accent) !important; }
+
+/* ---- Metrics ------------------------------------------------------------- */
+[data-testid="stMetric"] {
+    background: var(--surface) !important; border: 1px solid var(--line) !important;
+    border-radius: var(--radius) !important; padding: 1rem 1.1rem !important;
+}
+[data-testid="stMetricValue"] { font-family: var(--font-mono) !important; font-weight: 500 !important; color: var(--ink) !important; letter-spacing: -0.02em; }
+[data-testid="stMetricLabel"] p { color: var(--muted) !important; font-weight: 500 !important; text-transform: uppercase; letter-spacing: .07em; font-size: .7rem !important; }
+
+/* ---- Expander / alerts / tables ------------------------------------------ */
+[data-testid="stExpander"] { border: 1px solid var(--line) !important; border-radius: var(--radius) !important; background: var(--surface) !important; box-shadow: none; overflow: hidden; }
+[data-testid="stExpander"] summary { font-weight: 500 !important; color: var(--ink) !important; }
+[data-testid="stExpander"] summary:hover { color: var(--accent-deep) !important; }
+[data-testid="stAlert"] { border-radius: var(--radius-sm) !important; border: 1px solid var(--line) !important; background: var(--surface-2) !important; color: var(--ink) !important; }
+[data-testid="stDataFrame"], [data-testid="stTable"] { border-radius: var(--radius) !important; overflow: hidden; border: 1px solid var(--line); }
+[data-testid="stMetricValue"], [data-testid="stDataFrame"] { font-variant-numeric: tabular-nums; }
+hr { border-color: var(--line) !important; }
+
+/* ---- Scrollbars — near-invisible ----------------------------------------- */
+* { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 10px; }
+:hover::-webkit-scrollbar-thumb { background: var(--line-2); }
+
+/* =========================================================================
+   Reusable component classes
+   ========================================================================= */
+.icsa-hero {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 1.5rem 1.7rem; position: relative; overflow: hidden;
+}
+.icsa-hero::after {
+    content: ""; position: absolute; right: -80px; top: -80px; width: 240px; height: 240px; border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-soft), transparent 70%); opacity: .7;
+}
+.icsa-hero h2 { margin: 0; font-family: var(--font-display); font-size: 1.7rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+.icsa-eyebrow { font-family: var(--font-mono); font-size: .68rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+
+.icsa-brand { display: flex; align-items: center; gap: 11px; padding: .3rem 0 1.1rem; }
+.icsa-brand .mark {
+    width: 40px; height: 40px; border-radius: 10px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent); color: #fff;
+}
+.icsa-brand .word { font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; letter-spacing: -0.04em; color: var(--ink); line-height: 1; }
+.icsa-brand .sub { font-family: var(--font-mono); font-size: .58rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+
+.icsa-sec { display: flex; align-items: center; gap: 11px; margin: .4rem 0 1rem; }
+.icsa-sec .t { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; color: var(--ink); letter-spacing: -0.015em; }
+.icsa-sec .d { color: var(--muted); font-size: .85rem; }
+
+.stat-tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.05rem; height: 100%; }
+.stat-tile .lab { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: .7rem; font-weight: 500; text-transform: uppercase; letter-spacing: .07em; }
+.stat-tile .val { font-family: var(--font-mono); font-weight: 500; font-size: 1.7rem; color: var(--ink); margin-top: .4rem; letter-spacing: -0.03em; }
+.stat-tile .sub { color: var(--muted); font-size: .78rem; margin-top: .1rem; }
+.stat-tile.accent { border-color: var(--line); }
+
+.icsa-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.05rem 1.15rem; }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: .7rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; letter-spacing: .01em; font-family: var(--font-mono); }
+.pill.accent  { background: var(--accent-soft); color: var(--accent-deep); }
+.pill.success { background: var(--success-soft); color: var(--success); }
+.pill.warn    { background: var(--warn-soft); color: var(--warn); }
+.pill.danger  { background: var(--danger-soft); color: var(--danger); }
+.pill.muted   { background: var(--surface-2); color: var(--ink-soft); }
+
+.tag { display: inline-flex; align-items: center; font-size: .64rem; font-weight: 500; padding: 2px 8px; border-radius: 5px; background: var(--surface-2); color: var(--ink-soft); margin-left: 6px; text-transform: capitalize; font-family: var(--font-mono); border: 1px solid var(--line); }
+
+svg { shape-rendering: geometricPrecision; }
+
+/* ---- Motion — hover only (Streamlit reruns on interaction) ---------------- */
+.stat-tile, .icsa-card, [data-testid="stMetric"], div[data-testid="stChatMessage"], .stTabs [data-baseweb="tab"] {
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, color .16s ease;
+}
+.stat-tile:hover, [data-testid="stMetric"]:hover { transform: translateY(-1px); border-color: var(--line-2); }
+.icsa-card:hover { border-color: var(--line-2); }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+    .stat-tile:hover, [data-testid="stMetric"]:hover { transform: none; }
 }
 
-/* Target internal textarea of chat input */
-div[data-testid="stChatInput"] textarea {
-    font-size: 0.95rem !important;
-    color: #F8FAFC !important;
-    line-height: 1.5 !important;
-}
-
-/* Custom Scrollbar for better UI experience */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(108, 92, 231, 0.4);
-}
-
-/* Premium simple escalation banner */
-.escalation-banner {
-    background-color: rgba(239, 68, 68, 0.08) !important;
-    border-left: 4px solid #ef4444 !important;
-    padding: 12px 16px !important;
-    margin-top: 10px !important;
-    margin-bottom: 5px !important;
-    border-radius: 4px !important;
-    color: #f8fafc !important;
-    font-size: 0.9rem !important;
-    font-family: inherit !important;
-}
+/* ---- Menu typography — the dot-leader (subtle signature) ------------------ */
+.menu-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.menu-item:last-child { border-bottom: 0; }
+.menu-row { display: flex; align-items: baseline; gap: .55rem; }
+.menu-row .name { font-weight: 500; color: var(--ink); }
+.menu-row .lead { flex: 1 1 auto; align-self: center; border-bottom: 1px dotted var(--line-2); margin: 0 .15rem; min-width: 20px; }
+.menu-row .price { font-family: var(--font-mono); font-weight: 500; color: var(--accent-deep); font-size: .85rem; white-space: nowrap; }
+.menu-sizes { color: var(--muted); font-size: .76rem; font-family: var(--font-mono); margin-top: 5px; }
+.menu-desc { color: var(--ink-soft); font-size: .83rem; margin-top: 5px; }
+.menu-cat { font-family: var(--font-mono); font-weight: 500; font-size: .74rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 1.4rem 0 .3rem; padding-bottom: .35rem; border-bottom: 1px solid var(--line); }
