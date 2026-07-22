@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.git/
+.pytest_cache/
+screenshots/
+data/chroma_db/*
+data/*.db
+*.md
+docs/
+.DS_Store
